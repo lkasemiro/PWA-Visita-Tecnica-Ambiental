@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Formulário Técnico CEDAE (Offline)</title>
+<meta name="theme-color" content="#0C3C78">
+<link rel="manifest" href="manifest.json">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<style>
+body { background-color: #f8f9fa; margin:0; padding:0; font-family:
+Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+Arial; }
+.logo { width: 100%; max-width: 180px; margin: 10px auto; display:block}
+.btn { font-weight: 600; border-radius:8px }
+.section-card { background: white; border-radius: 12px; box-shadow:0 2px
+6px rgba(0,0,0,0.08); margin-bottom: 20px; padding: 15px }
+.section-title{ color:#0C3C78; font-weight:700; margin-bottom: 10px }
+.progress-bar{ background-color:#51C751 }
+#mapa_local{ height: 80vh; border-radius: 8px }
+#video, #canvas{ width: 100%; max-width: 100%; height: auto; border-radius:
+0.5rem; box-shadow:0 2px 4px rgba(0,0,0,0.12); background: #374151; object-fit:cover }
+</style>
+</head>
+<body>
+<div id="message-box" class="fixed top-0 left-1/2 -translate-x-1/2 w-full
+max-w-sm p-4 bg-red-500 text-white font-bold rounded-b-lg shadow-xl z-50
+hidden"></div>
+<div id="loading-spinner" class="fixed inset-0 bg-gray-900 bg-opacity-75
+flex items-center justify-center z-50 hidden">
+<div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2
+border-blue-500"></div>
+</div>
+<div id="camera-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden
+items-center justify-center z-40 p-4">
+<div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-lg">
+<h3 class="text-2xl font-bold mb-4 text-gray-700">Capturar Foto</h3>
+<div id="camera-container" class="flex flex-col items-center mb-4">
+<video id="video" autoplay playsinline class="hidden"></video>
+<canvas id="canvas" class="hidden"></canvas>
+<div id="camera-placeholder" class="w-full max-w-md h-64 flex items-
+center justify-center bg-gray-200 text-gray-500 rounded-lg border-2 border-
+dashed border-gray-400">Aguardando câmera...</div>
+</div>
+<div id="photo-info" class="mb-4 text-center hidden">
+<p class="text-sm font-semibold">Último ID Gerado: <span id="last-
+photo-id" class="text-blue-600">--</span></p>
+<img id="last-photo-preview"
+class="w-32 h-32 object-cover rounded-md mx-auto my-2 border-2" alt="Preview
+da Última Foto">
+</div>
+<div class="flex space-x-2">
+<button id="start-camera" class="w-1/2 bg-green-500 hover:bg-
+green-600 text-white font-bold py-3 px-4 rounded-lg shadow-md"> <span
+id="camera-btn-text">Iniciar Câmera</span></button>
+<button id="capture-photo"
+class="w-1/2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4
+rounded-lg shadow-md" disabled>Tirar Foto</button>
+</div>
+<button id="close-modal" class="mt-4 w-full bg-gray-500 hover:bg-
+gray-600 text-white font-bold py-2 px-4 rounded-lg">Fechar e Voltar ao
+Formulário</button>
+</div>
+</div>
+<div class="p-4 md:p-8">
+<div id="pagina_inicial" class="container mx-auto">
+<div class="flex flex-col md:flex-row md:space-x-4">
+<div class="md:w-1/3 p-4 bg-white rounded-xl shadow-lg mb-6 md:mb-0">
+<img src="icon.png" alt="Logo CEDAE" class="logo">
+<h4 class="text-xl
+font-bold text-center mt-2 mb-4 text-gray-700">Formulário
+de Visita Técnica</h4>
+<div class="mb-4">
+<label for="avaliador" class="block text-gray-700 font-medium
+mb-1">1. Nome do Avaliador: </label>
+<input type="text" id="avaliador" class="w-full p-2 border
+border-gray-300 rounded-lg" value="João Silva">
+</div>
+<div class="mb-6">
+<label for="local" class="block text-gray-700 font-medium mb-1">2.
+Local da Visita: </label>
+<input type="text" id="local" class="w-full p-2 border border-
+gray-300 rounded-lg" value="ETA Guandu">
+</div>
+<button id="salvar_inicio"
+class="btn bg-blue-600 hover:bg-blue-700 text-white w-full py-2 shadow-md">Salvar
+e Continuar
+</button>
+<p class="text-xs text-gray-500 mt-4 text-center">App PWA com
+IndexedDB para uso offline.</p>
+</div>
+<div class="md:w-2/3">
+<div id="mapa_local" class="h-96 md:h-full"></div>
+</div>
+</div>
+</div>
+<div id="pagina_formulario" class="container mx-auto hidden">
+<div class="text-center mb-6">
+<img src="icon.png" alt="Logo CEDAE Pequeno" class="h-8 mx-auto
+mb-2">
+<h5 class="text-xl font-semibold text-gray-800">Relatório Técnico
+Ambiental</h5>
+<hr class="border-t-2 border-blue-700 w-3/4 mx-auto mt-2">
+</div>
+<div class="flex justify-center mb-6">
+<div class="w-full max-w-sm">
+<label for="secao_select" class="block text-gray-700 font-medium
+mb-1">Selecionar Seção: </label>
+<select id="secao_select" class="w-full p-2 border border-gray-300
+rounded-lg"></select>
+</div>
+</div>
+<div id="conteudo_secao" class="w-full max-w-4xl mx-auto">
+<div class="section-card bg-gray-100 text-gray-500 text-center
+py-12">Selecione uma seção acima para começar a responder.</div>
+</div>
+<div class="text-center my-8 space-y-4">
+<button id="salvar_respostas" class="btn bg-green-600 hover:bg-
+green-700 text-white py-3 px-8 shadow-lg w-full max-w-sm">Salvar Respostas no
+LocalDB</button>
+<p id="local-db-status" class="text-sm text-gray-500">Último
+salvamento: N/A</p>
+<button id="baixar_excel" class="btn bg-blue-600 hover:bg-blue-700
+text-white py-3 px-8 shadow-lg w-full max-w-sm">Baixar CSV (Simulação
+Excel)</button>
+</div>
+</div>
+</div>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+//
+// ROTEIRO (JSON corrigido e usado como base)
+const ROTEIRO_JSON = [
+{"id":1,"secao":"Geral","pergunta":"Há presença ou vestígios da presença de animais domésticos na unidade?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
+{"id":2,"secao":"Geral","pergunta":"Anexe evidências da presença de animais domésticos (potes de água, cama, o animal)","tipoinput":"file","opcao":"","condicao":"Sim","pai":"1"},    {"id":3,"secao":"Geral","pergunta":"Houve ocorrência de algum acidente ambiental na unidade no período avaliado?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
+{"id":4,"secao":"Geral","pergunta":"Anexe evidências do acidente ocorrido e uma descrição","tipoinput":"file","opcao":"","condicao":"Sim","pai":"3"},
+{"id":5,"secao":"Geral","pergunta":"descrição do acidente ocorrido","tipoinput":"textarea","opcao":"","condicao":"Sim","pai":"3"},
+{"id":6,"secao":"Geral","pergunta":"Faltam placas educativas e de identificação do manancial na unidade ou necessitando de substituição?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
+{"id":7,"secao":"Geral","pergunta":"Em quais locais?","tipoinput":"textarea","opcao":"","condicao":"Sim","pai":"6"},
+{"id":8,"secao":"Geral","pergunta":"Anexe fotos das placas","tipoinput":"file","opcao":"","condicao":"Não","pai":"6"},
+{"id":9,"secao":"Geral","pergunta":"Foi verificada introdução ou plantação de espécie exótica de flora? Ex.: Limão, Mamão, Manga, Banana...","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
+{"id":10,"secao":"Geral","pergunta":"Evidência fotográfica:","tipoinput":"file","opcao":"","condicao":"Sim","pai":"9"},
+{"id":11,"secao":"Geral","pergunta":"Há utilização de equipamentos que consumam combustíveis fósseis?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
+{"id":12,"secao":"Geral","pergunta":"Cite os  equipamentos:","tipoinput":"textarea","opcao":"","condicao":"Sim","pai":"11"},
+{"id":13,"secao":"Energia","pergunta":"Qual a principal fonte de energia elétrica da unidade?","tipoinput":"checkboxGroup","opcao":"Elétrica concessionária;Fotovoltaica (solar)","condicao":"","pai":""},
+{"id":14,"secao":"Geradores","pergunta":"Há geradores na unidade?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
+{"id":15,"secao":"Geradores","pergunta":"Para que são utilizados os geradores?","tipoinput":"textarea","opcao":"","condicao":"Sim","pai":"14"},
+{"id":16,"secao":"Geradores","pergunta":"Qual o combustível é utilizado?","tipoinput":"checkboxGroup","opcao":"Gasolina;Diesel;Etanol","condicao":"Sim","pai":"14"},
+{"id":17,"secao":"Armazenamento de combustíveis fósseis","pergunta":"Há armazenamento de combustível na unidade?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
+{"id":18,"secao":"Armazenamento de combustíveis fósseis","pergunta":"Como os combustíveis são armazenados? (incluindo o tipo de recipiente, volume e o local).","tipoinput":"textarea","opcao":"","condicao":"Sim","pai":"17"},
+{"id":19,"secao":"Armazenamento de combustíveis fósseis","pergunta":"Há baia de contenção no local de armazenamento de combustíveis?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
+{"id":20,"secao":"Armazenamento de combustíveis fósseis","pergunta":"Evidência fotográfica das baias de contenção:","tipoinput":"file","opcao":"","condicao":"Sim","pai":"19"},
+{"id":21,"secao":"Armazenamento de combustíveis fósseis","pergunta":"O piso do local de armazenamento de combustíveis é impermeável?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
+{"id":22,"secao":"Armazenamento de combustíveis fósseis","pergunta":"Evidência fotográfica do piso impermeável:","tipoinput":"file","opcao":"","condicao":"Sim","pai":"21"},
+{"id":23,"secao":"Armazenamento de produtos químicos","pergunta":"Houve a transferência do tratamento químico da água captada para fora dos limites da Reserva Biológica?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
+{"id":24,"secao":"Armazenamento de produtos químicos","pergunta":"Há tratamento químico da água na unidade?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
+{"id":25,"secao":"Armazenamento de produtos químicos","pergunta":"Há armazenamento de produtos químicos na unidade?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
+{"id":26,"secao":"Armazenamento de produtos químicos","pergunta":"Anexe imagem do armazenamento dos produtos químicos","tipoinput":"file","opcao":"","condicao":"Sim","pai":"24"},
+{"id":27,"secao":"Armazenamento de produtos químicos","pergunta":"Como os produtos químicos são armazenados? Qual a quantidade armazenada e o material do recipiente","tipoinput":"textarea","opcao":"","condicao":"Sim","pai":"24"},
+{"id":28,"secao":"Resíduos Sólidos","pergunta":"Há segregação de resíduos recicláveis e não recicláveis?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
+{"id":29,"secao":"Resíduos Sólidos","pergunta":"Os residuos são acondicionados de forma adequada em contêineres identificados?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
+{"id":30,"secao":"Resíduos Sólidos","pergunta":"Os residuos gerados são quantificados e seus pesos registrados?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
+{"id":31,"secao":"Resíduos Sólidos","pergunta":"Anexo fotográfico do armazenamento dos resíduos até sua disposição final","tipoinput":"file","opcao":"","condicao":"","pai":""},
+{"id":32,"secao":"Resíduos Sólidos","pergunta":"Esta unidade é atendida pelo sistema público de coleta de resíduos?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
+{"id":33,"secao":"Resíduos Sólidos","pergunta":"Como é realizada a disposição final dos resíduos sólidos não recicláveis gerados?","tipoinput":"textarea","opcao":"","condicao":"","pai":""},
+{"id":34,"secao":"Resíduos Sólidos","pergunta":"Foi verificado algum indício de queima de resíduos sólidos na unidade?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
+{"id":35,"secao":"Resíduos Sólidos","pergunta":"Evidência de queima de residuos","tipoinput":"file","opcao":"","condicao":"Sim","pai":"34"},
+{"id":36,"secao":"Resíduos Sólidos","pergunta":"Há geração de resíduos perigosos na unidade?","tipoinput":"checkboxGroup","opcao":"Lâmpadas fluorescentes;Pilhas e baterias;Óleo lubrificante usado;Tintas;Outros;Não","condicao":"","pai":""},
+{"id":37,"secao":"Resíduos Sólidos","pergunta":"Se outros, Quais?","tipoinput":"textarea","opcao":"","condicao":"Outros","pai":"36"},
+{"id":38,"secao":"Resíduos Sólidos","pergunta":"Como é feito o descarte dos resíduos perigosos?","tipoinput":"textarea","opcao":"","condicao":"","pai":""},
+{"id":39,"secao":"Resíduos Sólidos","pergunta":"É possível identificar resíduos dispostos inadequadamente pelo terreno da unidade?","tipoinput":"checkboxGroup","opcao":"Entulhos e res. de obras; Sucatas/ bens inservíveis; Lixo comum; Outros;Não","condicao":"","pai":""},
+{"id":40,"secao":"Resíduos Sólidos","pergunta":"Caso outros, quais?","tipoinput":"textarea","opcao":"","condicao":"","pai":""},
+{"id":41,"secao":"Resíduos Sólidos","pergunta":"Registro fotográfico ","tipoinput":"file","opcao":"","condicao":"","pai":""}
+];
+//
+// Estado global
+const DB_NAME = 'VisitaTecnicaDB';
+const STORE_PHOTOS = 'FotosVisitas';
+const STORE_ANSWERS = 'RespostasVisitas';
+const APP_STATE = { avaliador: '', local: '', respostasFormulario: {} };
+let db = null; let photoCounter = 1;
+let stream = null; let
+currentPhotoInputId = null;
+
+function showNotification(msg, type='error'){
+const box = document.getElementById('message-box');
+box.textContent = msg; box.classList.remove('hidden', 'bg-red-500', 'bg-green-500');
+box.classList.add(type==='error'?'bg-red-500': 'bg-green-500');
+setTimeout(()=> box.classList.add('hidden'), 5000);
+}
+function showSpinner() { document.getElementById('loading-spinner').classList.remove('hidden'); }
+function hideSpinner() { document.getElementById('loading-spinner').classList.add('hidden'); }
+
+// IndexedDB init
+function initIndexedDB() {
+return new Promise((resolve, reject)=>{
+const request = indexedDB.open(DB_NAME, 1);
+request.onupgradeneeded = (e)=>{
+db = e.target.result;
+if(!db.objectStoreNames.contains (STORE_PHOTOS))
+db.createObjectStore (STORE_PHOTOS, {keyPath: 'id'});
+if(!db.objectStoreNames.contains(STORE_ANSWERS))
+db.createObjectStore (STORE_ANSWERS, {keyPath: 'id', autoIncrement:true});
+};
+request.onsuccess = (e)=>{
+db = e.target.result; console.log('IndexedDB pronto');
+getLastPhotoId().then(last=>{ photoCounter = Math.max(1, last+1);
+loadInitialAnswers(); resolve(); });
+};
+request.onerror = (e)=>{ showNotification ('Erro IndexedDB:'+e.target.error.message, 'error'); reject(e); };
+});
+}
+function getLastPhotoId() {
+return new Promise((resolve)=>{
+if(!db) return resolve(0);
+const tx = db.transaction([STORE_PHOTOS], 'readonly');
+const store =
+tx.objectStore (STORE_PHOTOS);
+const req = store.openCursor (null, 'prev');
+req.onsuccess = (e)=>{ const cur = e.target.result; if(cur)
+resolve(parseInt(cur.value.id)||0); else resolve(0); };
+req.onerror = ()=> resolve(0);
+});
+}
+function savePhoto (base64String) {
+return new Promise((resolve, reject)=>{
+if(!db) return reject(new Error('IndexedDB não disponível'));
+const photoId = String(photoCounter).padStart(3,'0');
+const tx = db.transaction([STORE_PHOTOS], 'readwrite');
+const store = tx.objectStore (STORE_PHOTOS);
+// O campo 'data' agora armazena a string Base64 em vez do Blob
+const data = { id: photoId, data: base64String, timestamp: new
+Date().toISOString()};
+const req = store.add(data);
+req.onsuccess = ()=>{ photoCounter++; document.getElementById('last-photo-id').textContent = photoId; resolve (photoId); };
+req.onerror = (e)=>{ showNotification ('Erro ao salvar foto: '+
+(e.target?.error?.message||e.message), 'error'); reject(e); };
+});
+}
+function saveAllAnswersToDB(){
+return new Promise((resolve, reject)=>{
+if(!db) return reject(new Error('IndexedDB não disponível'));
+const tx = db.transaction ([STORE_ANSWERS], 'readwrite');
+const store =
+tx.objectStore (STORE_ANSWERS);
+const report = { id: `report_${Date.now()}`, timestamp:new
+Date().toISOString(), avaliador: APP_STATE.avaliador, local: APP_STATE.local,
+respostas: JSON.stringify(APP_STATE.respostasFormulario) };
+const req = store.put(report);
+req.onsuccess = ()=>{ document.getElementById('local-db-status').textContent = `Último salvamento: ${new
+Date().toLocaleTimeString('pt-BR')}`; resolve(); };
+req.onerror = (e)=>{ showNotification ('Erro ao salvar: '+
+(e.target?.error?.message||e.message), 'error'); reject(e); };
+});
+}
+function loadInitialAnswers(){
+APP_STATE.avaliador = localStorage.getItem('avaliador') || 'João Silva';
+APP_STATE.local = localStorage.getItem('local') || 'Local da Visita';
+document.getElementById('avaliador').value = APP_STATE.avaliador;
+document.getElementById('local').value = APP_STATE.local;
+const saved = localStorage.getItem('respostasFormulario');
+if(saved) APP_STATE.respostasFormulario = JSON.parse(saved);
+}
+// Camera functions
+async function startCamera(){
+const videoEl =
+document.getElementById('video');
+const placeholder =
+document.getElementById('camera-placeholder');
+const btnText = document.getElementById('camera-btn-text');
+const captureBtn = document.getElementById('capture-photo');
+if(stream) { stream.getTracks().forEach(t=>t.stop()); stream=null;
+videoEl.classList.add('hidden'); placeholder.classList.remove('hidden');
+btnText.textContent='Iniciar Câmera'; captureBtn.disabled=true; return; }
+try{
+stream = await navigator.mediaDevices.getUserMedia({ video: {
+facingMode: { ideal: 'environment' } }, audio: false });
+}catch(err) {
+try{ stream = await navigator.mediaDevices.getUserMedia({ video:true,
+audio: false }); }catch(err2){ showNotification ('Não foi possível acessar a câmera: '+(err2.message||err.message)+'. SOLUÇÃO: Use HTTPS! (Ex: Netlify/Github Pages)', 'error');
+placeholder.textContent='Acesso à câmera negado ou indisponível. Necessita de HTTPS.'; return; }
+}
+videoEl.srcObject = stream; await videoEl.play();
+videoEl.classList.remove('hidden'); placeholder.classList.add('hidden');
+btnText.textContent='Desligar Câmera'; captureBtn.disabled=false;
+videoEl.onloadedmetadata = ()=>{ const canvasEl =
+document.getElementById('canvas'); canvasEl.width = videoEl.videoWidth;
+canvasEl.height = videoEl.videoHeight; };
+}
+function capturePhoto() {
+const videoEl =
+document.getElementById('video');
+const canvasEl =
+document.getElementById('canvas');
+const ctx = canvasEl.getContext('2d');
+if(!stream || videoEl.paused || videoEl.ended) { showNotification('Acâmera não está ativa.', 'error'); return; }
+
+ctx.drawImage(videoEl,0,0,canvasEl.width, canvasEl.height);
+
+// Converte o canvas para string Base64 (Data URL) em vez de Blob
+const base64String = canvasEl.toDataURL('image/jpeg', 0.9);
+
+// Chama a função de salvar com a string Base64
+savePhoto(base64String).then(id => {
+    APP_STATE.respostasFormulario [currentPhotoInputId] = id;
+    const display = document.getElementById(`display_${currentPhotoInputId}`);
+    if(display) display.textContent = id;
+    document.getElementById('photo-info').classList.remove('hidden');
+    // O preview usa a string Base64 (Data URL) diretamente
+    document.getElementById('last-photo-preview').src = base64String;
+    showNotification (`Foto capturada e salva (ID: ${id})`, 'success');
+}).catch(e => {
+    console.error(e);
+    showNotification ('Erro ao salvar foto: '+(e.message), 'error');
+});
+
+canvasEl.classList.remove('hidden'); videoEl.classList.add('hidden');
+setTimeout(()=>{ videoEl.classList.remove('hidden');
+canvasEl.classList.add('hidden'); },500);
+}
+function closeModalAndStopCamera(){
+document.getElementById('camera-modal').classList.add('hidden');
+if(stream) { stream.getTracks().forEach(t=>t.stop()); stream=null; }
+document.getElementById('video').classList.add('hidden');
+document.getElementById('camera-placeholder').classList.remove('hidden');
+document.getElementById('camera-btn-text').textContent='Iniciar Câmera';
+document.getElementById('capture-photo').disabled=true;
+document.getElementById('photo-info').classList.add('hidden');
+applyConditionalLogic();
+}
+// Render form section
+function renderFormSection(sectionName) {
+  const container = document.getElementById('conteudo_secao');
+  container.innerHTML = '';
+
+  const sectionData = ROTEIRO_JSON.filter(p => p.secao === sectionName);
+  if (sectionData.length === 0) {
+    container.innerHTML = '<div class="section-card text-gray-500 text-center py-12">Seção não encontrada.</div>';
+    return;
+  }
+
+  const card = document.createElement('div');
+  card.className = 'section-card w-full max-w-4xl mx-auto';
+  card.innerHTML = `<h4 class="text-xl section-title">${sectionName}</h4>`;
+
+  // 🔽 Loop das perguntas
+  sectionData.forEach(p => {
+    const inputId = `pergunta_${p.id}`;
+    const div = document.createElement('div');
+    div.className = 'form-group mb-4 p-3 border-b';
+    div.id = `group_${inputId}`;
+    const currentValue = APP_STATE.respostasFormulario[inputId] || '';
+
+    let inputHTML = '';
+
+    if (p.tipoinput === 'radio') {
+      inputHTML = `<label class="block text-gray-700 font-medium mb-2">${p.pergunta}</label>`;
+      const options = p.opcao.split(';');
+      options.forEach(opt => {
+        const safe = opt.trim();
+        const isChecked = currentValue === safe ? 'checked' : '';
+        inputHTML += `
+          <div class="flex items-center space-x-2">
+            <input type="radio" id="${inputId}_${safe.replace(/\s/g, '_')}" name="${inputId}" value="${safe}" ${isChecked} class="form-radio h-4 w-4" data-id="${p.id}">
+            <label for="${inputId}_${safe.replace(/\s/g, '_')}" class="text-gray-600">${safe}</label>
+          </div>`;
+      });
+
+    } else if (p.tipoinput === 'textarea') {
+      inputHTML = `
+        <label for="${inputId}" class="block text-gray-700 font-medium mb-1">${p.pergunta}</label>
+        <textarea id="${inputId}" rows="3" class="w-full p-2 border border-gray-300 rounded-lg">${currentValue}</textarea>`;
+
+    } else if (p.tipoinput === 'file') {
+      inputHTML = `
+        <label class="block text-gray-700 font-medium mb-1">${p.pergunta}</label>
+        <div class="flex space-x-2">
+          <button id="open_camera_${inputId}" type="button"
+            class="open-camera-modal w-1/2 bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded-lg text-sm"
+            data-input-id="${inputId}">Abrir Câmera</button>
+          <div class="w-1/2 p-2 bg-gray-100 rounded-lg border border-gray-300 flex items-center justify-center text-sm">
+            ID da Foto: <span id="display_${inputId}" class="ml-2 font-bold text-blue-600">${currentValue || 'N/A'}</span>
+          </div>
+        </div>
+        <small class="text-gray-500 mt-1 block">O ID da foto será o valor salvo no relatório.</small>`;
+
+    } else if (p.tipoinput === 'checkboxGroup') {
+      const initialValue = (Array.isArray(currentValue) ? currentValue.join('; ') : currentValue) || '';
+      const savedValues = initialValue.split(';').map(v => v.trim());
+      inputHTML = `<label class="block text-gray-700 font-medium mb-1">${p.pergunta}</label>`;
+      const opts = p.opcao.split(';');
+      opts.forEach((opt, i) => {
+        const safe = opt.trim();
+        const checked = savedValues.includes(safe) ? 'checked' : '';
+        inputHTML += `
+          <div class="flex items-center space-x-2">
+            <input type="checkbox" id="${inputId}_chk_${i}" name="${inputId}" data-opt="${safe}" ${checked}>
+            <label for="${inputId}_chk_${i}" class="text-gray-600">${safe}</label>
+          </div>`;
+      });
+
+    } else {
+      inputHTML = `
+        <label for="${inputId}" class="block text-gray-700 font-medium mb-1">${p.pergunta}</label>
+        <input type="text" id="${inputId}" value="${currentValue}" class="w-full p-2 border border-gray-300 rounded-lg">`;
+    }
+
+    div.innerHTML = inputHTML;
+    card.appendChild(div);
+  });
+
+  container.appendChild(card);
+  applyConditionalLogic();
+  attachFormListeners();
+}
+
+function applyConditionalLogic(){
+  ROTEIRO_JSON.forEach(p=>{
+    if(p.pai && p.condicao) {
+      const paiId = `pergunta_${p.pai}`;
+      const filhoId = `group_pergunta_${p.id}`;
+      const filhoGroup = document.getElementById(filhoId);
+      if(!filhoGroup) return;
+      const paiValue = APP_STATE.respostasFormulario[paiId];
+      if(paiValue===p.condicao) filhoGroup.classList.remove('hidden');
+      else filhoGroup.classList.add('hidden');
+    }
+  });
+}
+
+function attachFormListeners(){
+  const inputs = document.querySelectorAll('#conteudo_secao input, #conteudo_secao textarea');
+  inputs.forEach(input=>{
+    // Use o 'name' para radio/checkbox e 'id' para outros
+    const inputId = input.name || input.id;
+    if(input.type !== 'file' && input.type !== 'checkbox') {
+      // Carrega valor inicial (apenas para text, textarea, radio)
+      if(APP_STATE.respostasFormulario[inputId] && input.type==='radio') {
+        input.checked = APP_STATE.respostasFormulario[inputId] === input.value;
+      } else if(input.type === 'text' || input.tagName === 'TEXTAREA') {
+        input.value = APP_STATE.respostasFormulario[inputId] || '';
+      }
+    }
+
+    // Listener para salvar respostas
+    input.addEventListener('change',(e)=>{
+      if(input.type === 'radio') {
+        APP_STATE.respostasFormulario[input.name] = e.target.value;
+      } else if(input.type === 'checkbox'){
+        // Lógica de Checkbox Group
+        const parentId = input.name; // ID da pergunta (ex: pergunta_36)
+        const checkboxes = Array.from(document.querySelectorAll(`input[name="${parentId}"]:checked`));
+        
+        // Mapeia os valores checados
+        const checkedValues = checkboxes.map(chk => chk.getAttribute('data-opt') || chk.value).filter(v => v);
+        
+        // Salva os valores checados como uma string separada por ponto e vírgula
+        APP_STATE.respostasFormulario[parentId] = checkedValues.join('; ');
+        
+      } else if(input.type !== 'file') {
+        APP_STATE.respostasFormulario[input.id] = e.target.value;
+      }
+
+      localStorage.setItem('respostasFormulario', JSON.stringify(APP_STATE.respostasFormulario));
+      applyConditionalLogic();
+    });
+  });
+  // camera open
+  document.querySelectorAll('.open-camera-modal').forEach(button=>{
+    button.addEventListener('click', (e)=>{
+      const inputId = e.currentTarget.getAttribute('data-input-id');
+      currentPhotoInputId = inputId; document.getElementById('camera-modal').classList.remove('hidden'); startCamera();
+    });
+  });
+}
+
+function setupAppListeners(){
+document.getElementById('salvar_inicio').addEventListener('click',()=>{
+const avaliador = document.getElementById('avaliador').value; const
+local = document.getElementById('local').value;
+if(!avaliador || !local){
+showNotification('Preencha nome e local antes de continuar.','error');
+return; }
+APP_STATE.avaliador = avaliador; APP_STATE.local = local;
+localStorage.setItem('avaliador', avaliador); localStorage.setItem('local',
+local);
+showNotification('Informações salvas com sucesso!','success');
+document.getElementById('pagina_inicial').classList.add('hidden');
+document.getElementById('pagina_formulario').classList.remove('hidden');
+// seleciona primeira seção encontrada
+const secoes = [...new Set(ROTEIRO_JSON.map(p=>p.secao))];
+document.getElementById('secao_select').value = secoes[0];
+renderFormSection(secoes[0]);
+});
+document.getElementById('secao_select').addEventListener('change',(e)=>{
+if(e.target.value) renderFormSection(e.target.value); });
+document.getElementById('start-camera').addEventListener('click',
+startCamera); document.getElementById('capture-photo').addEventListener('click', capturePhoto);
+document.getElementById('close-modal').addEventListener('click',
+closeModalAndStopCamera);
+document.getElementById('salvar_respostas').addEventListener('click',
+async ()=>{
+showSpinner(); try{
+// Salvamento manual no clique, garantindo que o checkbox group seja lido
+const inputs = document.querySelectorAll('#conteudo_secao input:not([type="radio"]):not([type="checkbox"]), #conteudo_secao textarea');
+inputs.forEach(input=>{ if(!input.closest('.form-group.hidden')){ const inputId = input.id;
+APP_STATE.respostasFormulario[inputId] = input.value; } });
+
+// Salvamento de radio button
+document.querySelectorAll('#conteudo_secao input[type="radio"]').forEach(radio=>{ 
+    if(radio.checked && !radio.closest('.form-group.hidden')){
+        APP_STATE.respostasFormulario[radio.name] = radio.value; 
+    }
+});
+
+// Salvamento de checkbox (refazendo a lógica para garantir o salvamento final)
+document.querySelectorAll('#conteudo_secao .form-group').forEach(group => {
+    const checkboxGroup = group.querySelector('input[type="checkbox"]');
+    if (checkboxGroup) {
+        const parentId = checkboxGroup.name;
+        const checkboxes = Array.from(group.querySelectorAll(`input[name="${parentId}"]:checked`));
+        const checkedValues = checkboxes.map(chk => chk.getAttribute('data-opt') || chk.value).filter(v => v);
+        APP_STATE.respostasFormulario[parentId] = checkedValues.join('; ');
+    }
+});
+
+await saveAllAnswersToDB();
+localStorage.setItem('respostasFormulario',
+JSON.stringify(APP_STATE.respostasFormulario)); showNotification('Relatório salvo com sucesso no LocalDB!','success');
+}catch(e){ showNotification('Erro ao salvar o relatório no LocalDB.','error'); } finally{ hideSpinner(); }
+});
+document.getElementById('baixar_excel').addEventListener('click',
+downloadCSV);
+}
+function downloadCSV(){
+// Adiciona o BOM para corrigir a codificação UTF-8 no Excel (Correção #1)
+const BOM = '\ufeff'; 
+const headers =
+["Secao","Pergunta","Resposta","Avaliador","Local","Data_Exportacao"];
+const reportRows = ROTEIRO_JSON.map(p=>{ const inputId = `pergunta_${p.id}`; const resposta = APP_STATE.respostasFormulario[inputId] || '';
+// A resposta é um texto simples, mas garantimos que aspas duplas sejam escapadas
+return [`"${p.secao}"`, `"${p.pergunta.replace(/"/g,'""')}"`, `"${String(resposta).replace(/"/g,'""')}"`, `"${APP_STATE.avaliador}"`, `"${APP_STATE.local}"`, `"${new Date().toLocaleString('pt-BR')}"`].join(','); });
+
+const csvContent = headers.join(',') + '\n' + reportRows.join('\n');
+const finalContent = BOM + csvContent; // Adiciona o BOM no início
+
+const blob = new Blob([finalContent], { type: 'text/csv;charset=utf-8;' });
+const url = URL.createObjectURL(blob);
+const link = document.createElement('a'); link.setAttribute('href',
+url); 
+
+// Mantemos a extensão .csv, pois é o formato de fato, mas com a correção de codificação
+const filename = `relatorio_${APP_STATE.local.replace(/\s/g,'_')}_${new Date().toISOString().slice(0,10)}.csv`; 
+
+link.setAttribute('download', filename); 
+document.body.appendChild(link); link.click();
+document.body.removeChild(link); showNotification('Arquivo CSV gerado com sucesso!','success');
+}
+async function initApp(){
+await initIndexedDB();
+const secoes = [...new Set(ROTEIRO_JSON.map(p=>p.secao))];
+const selectEl = document.getElementById('secao_select');
+selectEl.innerHTML = '<option value="">-- Selecione uma seção --</option>';
+secoes.forEach(sec=>{ const opt = document.createElement('option');
+opt.value = sec; opt.textContent = sec; selectEl.appendChild(opt); });
+
+const defaultLat = -22.9035;
+const defaultLng = -43.2096;
+const mapa = L.map('mapa_local').setView([defaultLat, defaultLng], 12);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+attribution: '&copy; OpenStreetMap contributors' }).addTo(mapa);
+L.marker([defaultLat,
+defaultLng]).addTo(mapa).bindPopup('Local da Visita (Padrão)').openPopup();
+
+// CORREÇÃO DO MAPA: Força o Leaflet a recalcular o tamanho da div.
+setTimeout(() => {
+    mapa.invalidateSize();
+}, 100); 
+
+if(navigator.geolocation){
+navigator.geolocation.getCurrentPosition(pos=>{ const {latitude,longitude} =
+pos.coords; mapa.setView([latitude,longitude],14);
+L.marker([latitude,longitude]).addTo(mapa).bindPopup('Sua Posição Atual').openPopup();
+mapa.invalidateSize(); // Invalida novamente após mover o mapa para a geolocalização
+}, (err)=>{ console.warn('Geolocation falhou',
+err.message); });
+}
+setupAppListeners();
+}
+window.addEventListener('load', initApp);
+// registra service worker (se suportado)
+if('serviceWorker' in navigator){ 
+  navigator.serviceWorker.register('./service-worker.js')
+    .then(() => console.log('SW registrado'))
+    .catch(err => console.warn('Falha SW', err));
+}
+</script>
+</body>
+</html>
