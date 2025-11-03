@@ -619,43 +619,62 @@ link.setAttribute('download', filename);
 document.body.appendChild(link); link.click();
 document.body.removeChild(link); showNotification('Arquivo CSV gerado com sucesso!','success');
 }
-async function initApp(){
-await initIndexedDB();
-const secoes = [...new Set(ROTEIRO_JSON.map(p=>p.secao))];
-const selectEl = document.getElementById('secao_select');
-selectEl.innerHTML = '<option value="">-- Selecione uma seção --</option>';
-secoes.forEach(sec=>{ const opt = document.createElement('option');
-opt.value = sec; opt.textContent = sec; selectEl.appendChild(opt); });
+async function initApp() {
+  await initIndexedDB();
 
-const defaultLat = -22.9035;
-const defaultLng = -43.2096;
-const mapa = L.map('mapa_local').setView([defaultLat, defaultLng], 12);
+  // Popula o seletor de seções
+  const secoes = [...new Set(ROTEIRO_JSON.map(p => p.secao))];
+  const selectEl = document.getElementById('secao_select');
+  selectEl.innerHTML = '<option value="">-- Selecione uma seção --</option>';
+  secoes.forEach(sec => {
+    const opt = document.createElement('option');
+    opt.value = sec;
+    opt.textContent = sec;
+    selectEl.appendChild(opt);
+  });
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-attribution: '&copy; OpenStreetMap contributors' }).addTo(mapa);
-L.marker([defaultLat,
-defaultLng]).addTo(mapa).bindPopup('Local da Visita (Padrão)').openPopup();
+  // Inicializa o mapa
+  const defaultLat = -22.9035;
+  const defaultLng = -43.2096;
+  const mapa = L.map('mapa_local').setView([defaultLat, defaultLng], 12);
 
-// CORREÇÃO DO MAPA: Força o Leaflet a recalcular o tamanho da div.
-setTimeout(() => {
-    mapa.invalidateSize();
-}, 100); 
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(mapa);
 
-if(navigator.geolocation){
-navigator.geolocation.getCurrentPosition(pos=>{ const {latitude,longitude} =
-pos.coords; mapa.setView([latitude,longitude],14);
-L.marker([latitude,longitude]).addTo(mapa).bindPopup('Sua Posição Atual').openPopup();
-mapa.invalidateSize(); // Invalida novamente após mover o mapa para a geolocalização
-}, (err)=>{ console.warn('Geolocation falhou',
-err.message); });
-}
-setupAppListeners();
+  L.marker([defaultLat, defaultLng])
+    .addTo(mapa)
+    .bindPopup('Local da Visita (Padrão)')
+    .openPopup();
+
+  // Corrige o tamanho do mapa
+  setTimeout(() => mapa.invalidateSize(), 200);
+
+  // Geolocalização
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      const { latitude, longitude } = pos.coords;
+      mapa.setView([latitude, longitude], 14);
+      L.marker([latitude, longitude])
+        .addTo(mapa)
+        .bindPopup('Sua Posição Atual')
+        .openPopup();
+      mapa.invalidateSize();
+    }, err => console.warn('Geolocation falhou', err.message));
+  }
+
+  // Configura eventos do app
+  setupAppListeners();
+
+  // Verifica se o avaliador já estava salvo
   if (APP_STATE.avaliador && APP_STATE.local) {
-        document.getElementById('secao_abertura').classList.add('hidden');
-        document.getElementById('secao_formulario').classList.remove('hidden');
-        generateForm();
-      }
-    }
+    document.getElementById('pagina_inicial').classList.add('hidden');
+    document.getElementById('pagina_formulario').classList.remove('hidden');
+    document.getElementById('secao_select').value = secoes[0];
+    renderFormSection(secoes[0]);
+  }
+}
+
 
 window.addEventListener('load', initApp);
 // registra service worker (se suportado)
@@ -669,3 +688,4 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
+
