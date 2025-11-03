@@ -294,8 +294,7 @@ document.getElementById('video');
 const canvasEl =
 document.getElementById('canvas');
 const ctx = canvasEl.getContext('2d');
-if(!stream || videoEl.paused || videoEl.ended) { showNotification('A
-câmera não está ativa.', 'error'); return; }
+if(!stream || videoEl.paused || videoEl.ended) { showNotification('Acâmera não está ativa.', 'error'); return; }
 
 ctx.drawImage(videoEl,0,0,canvasEl.width, canvasEl.height);
 
