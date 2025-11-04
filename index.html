@@ -220,82 +220,124 @@ function showSpinner() { document.getElementById('loading-spinner').classList.re
 function hideSpinner() { document.getElementById('loading-spinner').classList.add('hidden'); }
 
 // IndexedDB init
+// [Source: ~Linha 200] Substitua sua função initIndexedDB()
+
 function initIndexedDB() {
-return new Promise((resolve, reject)=>{
-const request = indexedDB.open(DB_NAME, 1);
-request.onupgradeneeded = (e)=>{
-db = e.target.result;
-if(!db.objectStoreNames.contains (STORE_PHOTOS))
-db.createObjectStore (STORE_PHOTOS, {keyPath: 'id'});
-if(!db.objectStoreNames.contains(STORE_ANSWERS))
-db.createObjectStore (STORE_ANSWERS, {keyPath: 'id', autoIncrement:true});
-};
-request.onsuccess = (e)=>{
-db = e.target.result; console.log('IndexedDB pronto');
-getLastPhotoId().then(last=>{ photoCounter = Math.max(1, last+1);
-loadInitialAnswers(); resolve(); });
-};
-request.onerror = (e)=>{ showNotification ('Erro IndexedDB:'+e.target.error.message, 'error'); reject(e); };
-});
+    return new Promise((resolve, reject) => {
+        // Usa a versão mais atualizada e padronizada do IndexedDB
+        const request = indexedDB.open(DB_NAME, DB_VERSION); 
+
+        // 1. OCORRE SE O BANCO DE DADOS AINDA NÃO EXISTE OU A VERSÃO FOI ATUALIZADA
+        request.onupgradeneeded = (e) => {
+            const db_temp = e.target.result;
+            // Verifica se a Object Store já existe antes de criar
+            if (!db_temp.objectStoreNames.contains(STORE_PHOTOS)) {
+                // CRÍTICO: Cria a Object Store com 'id' como chave primária única
+                db_temp.createObjectStore(STORE_PHOTOS, {
+                    keyPath: 'id'
+                }); 
+                console.log(`Object Store ${STORE_PHOTOS} criada.`);
+            }
+        };
+
+        // 2. OCORRE QUANDO A CONEXÃO É ESTABELECIDA COM SUCESSO
+        request.onsuccess = (e) => {
+            db = e.target.result;
+            console.log('IndexedDB pronto para uso.');
+            // Após a inicialização, tenta obter o último ID salvo
+            getLastPhotoId().then(last => {
+                // photoCounter começa em 1 ou no último ID + 1
+                photoCounter = Math.max(1, last + 1); 
+                loadInitialAnswers();
+                resolve();
+            }).catch(() => {
+                // Se falhar ao buscar o último ID, inicia em 1.
+                photoCounter = 1;
+                loadInitialAnswers();
+                resolve();
+            });
+        };
+
+        // 3. OCORRE SE HOUVER ALGUM ERRO (PERMISSÃO NEGADA, etc.)
+        request.onerror = (e) => {
+            console.error("Erro ao abrir IndexedDB:", e.target.error);
+            showNotification("Erro ao inicializar banco de dados local. Recarregue a página.", "error");
+            reject(e.target.error);
+        };
+    });
 }
-// [Source: 229] Corrigido: Função para obter o último ID de foto salvo
-function getLastPhotoId() {
-  return new Promise((resolve) => {
-    if (!db) return resolve(0);
-    const tx = db.transaction([STORE_PHOTOS], 'readonly');
-    const store =
-      tx.objectStore(STORE_PHOTOS);
-    const req = store.openCursor(null, 'prev');
-    req.onsuccess = (e) => {
-      const cur = e.target.result;
-      if (cur) {
-        // CORREÇÃO: Pega o ID (que é uma string como '001'), converte para inteiro e retorna.
-        // O parseInt ignora zeros à esquerda ('001' -> 1).
-        const lastId = parseInt(cur.value.id) || 0; 
-        resolve(lastId); 
-      } else {
-        resolve(0);
-      }
-    };
-    req.onerror = () => resolve(0);
-  });
+// [Source: ~Linha 237] Substitua sua função savePhoto()
+
+function savePhoto (base64String) {
+    return new Promise((resolve, reject)=>{
+        if(!db) { 
+            showNotification('Erro: Banco de dados local não está pronto. Recarregue a página.', 'error');
+            return reject(new Error('IndexedDB indisponível'));
+        }
+        
+        const photoId = String(photoCounter).padStart(3,'0');
+        const tx = db.transaction([STORE_PHOTOS], 'readwrite');
+        const store = tx.objectStore(STORE_PHOTOS);
+        
+        // CRÍTICO: TRATAMENTO DE ERRO DE TRANSAÇÃO (Captura QuotaExceededError - Falta de espaço)
+        tx.onerror = (e) => {
+            console.error("ERRO NA TRANSAÇÃO DB:", e.target.error);
+            // Nome do erro pode ser QuotaExceededError se o armazenamento estiver cheio
+            const errorName = e.target.error.name || 'Erro desconhecido.';
+            showNotification(`Falha no salvamento da foto: ${errorName}. (Possível falta de espaço)`, 'error');
+            reject(e.target.error);
+        };
+
+        const data = { id: photoId, data: base64String, timestamp: new Date().toISOString()};
+        const req = store.add(data);
+        
+        req.onsuccess = ()=>{ 
+            photoCounter++; 
+            resolve (photoId); 
+        };
+        req.onerror = (e)=>{ 
+            console.error("ERRO NA REQUISIÇÃO ADD:", e.target.error);
+            showNotification ('Erro ao salvar foto: '+ (e.target.error.message || e.message), 'error'); 
+            reject(e.target.error); 
+        };
+    });
 }
-async function savePhoto(base64String) {
-  // 🔹 Garante que o IndexedDB foi inicializado
-  if (!db) {
-    console.warn('Banco não inicializado, tentando abrir novamente...');
-    await initIndexedDB();
-  }
+// [Source: ~Linha 237] Substitua sua função savePhoto()
 
-  return new Promise((resolve, reject) => {
-    if (!db) {
-      showNotification('IndexedDB ainda indisponível.', 'error');
-      return reject(new Error('IndexedDB indisponível'));
-    }
+function savePhoto (base64String) {
+    return new Promise((resolve, reject)=>{
+        if(!db) { 
+            showNotification('Erro: Banco de dados local não está pronto. Recarregue a página.', 'error');
+            return reject(new Error('IndexedDB indisponível'));
+        }
+        
+        const photoId = String(photoCounter).padStart(3,'0');
+        const tx = db.transaction([STORE_PHOTOS], 'readwrite');
+        const store = tx.objectStore(STORE_PHOTOS);
+        
+        // CRÍTICO: TRATAMENTO DE ERRO DE TRANSAÇÃO (Captura QuotaExceededError - Falta de espaço)
+        tx.onerror = (e) => {
+            console.error("ERRO NA TRANSAÇÃO DB:", e.target.error);
+            // Nome do erro pode ser QuotaExceededError se o armazenamento estiver cheio
+            const errorName = e.target.error.name || 'Erro desconhecido.';
+            showNotification(`Falha no salvamento da foto: ${errorName}. (Possível falta de espaço)`, 'error');
+            reject(e.target.error);
+        };
 
-    try {
-      const transaction = db.transaction(['photos'], 'readwrite');
-      const store = transaction.objectStore('photos');
-      const request = store.add({ image: base64String, timestamp: Date.now() });
-
-      request.onsuccess = () => {
-        console.log("📸 Foto salva com sucesso no IndexedDB");
-        resolve();
-      };
-
-      request.onerror = (event) => {
-        console.error("❌ Erro ao salvar foto:", event.target.error);
-        showNotification("Erro ao salvar foto localmente.", "error");
-        reject(event.target.error);
-      };
-    } catch (error) {
-      console.error("❌ Falha inesperada ao salvar foto:", error);
-      showNotification("Erro interno ao salvar imagem.", "error");
-      reject(error);
-    }
-  });
+        const data = { id: photoId, data: base64String, timestamp: new Date().toISOString()};
+        const req = store.add(data);
+        
+        req.onsuccess = ()=>{ 
+            photoCounter++; 
+            resolve (photoId); 
+        };
+        req.onerror = (e)=>{ 
+            console.error("ERRO NA REQUISIÇÃO ADD:", e.target.error);
+            showNotification ('Erro ao salvar foto: '+ (e.target.error.message || e.message), 'error'); 
+            reject(e.target.error); 
+        };
+    });
 }
-
 function saveAllAnswersToDB(){
 return new Promise((resolve, reject)=>{
 if(!db) return reject(new Error('IndexedDB não disponível'));
@@ -758,4 +800,3 @@ if('serviceWorker' in navigator){
 </script>
 </body>
 </html>
-
