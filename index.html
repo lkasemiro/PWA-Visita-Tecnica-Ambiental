@@ -365,7 +365,7 @@ async function startCamera() {
   };
 }
 
-// 🌿 Captura foto da câmera e salva no IndexedDB
+// [Source: 252] Corrigido: Captura foto da câmera e salva no IndexedDB
 function capturePhoto() {
   const videoEl = document.getElementById('video');
   const canvasEl = document.getElementById('canvas');
@@ -379,47 +379,37 @@ function capturePhoto() {
   // 🔹 Desenha frame atual no canvas
   ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
 
-  // 🔹 Reduz qualidade para celular (0.5 = 50%)
+  // 🔹 CORREÇÃO DE MEMÓRIA: Reduz a qualidade para 50%/70%
   const base64String = canvasEl.toDataURL('image/jpeg', window.innerWidth < 800 ? 0.5 : 0.7);
 
-  // 🔹 Salva no banco local
-  savePhoto(base64String)
-    .then(() => showNotification('📸 Foto salva com sucesso!', 'success'))
-    .catch(err => showNotification('Erro ao salvar foto: ' + err.message, 'error'));
+  // 🔹 Chama a função de salvar com a string Base64 e ATUALIZA O FORMULÁRIO
+  savePhoto(base64String).then(id => {
+    // 1. Garante que o ID da foto seja salvo como a resposta para a pergunta
+    if (currentPhotoInputId) {
+        APP_STATE.respostasFormulario[currentPhotoInputId] = id;
+        // 2. Atualiza o display do ID no formulário (onde estava o N/A)
+        const displayElement = document.getElementById(`display_${currentPhotoInputId}`);
+        if(displayElement) displayElement.textContent = id;
+    } else {
+        console.warn('currentPhotoInputId está vazio. ID salvo no DB, mas não no formulário.');
+    }
+    
+    // 3. Atualiza o preview e o ID na modal da câmera (Confirmação)
+    document.getElementById('last-photo-id').textContent = id;
+    document.getElementById('photo-info').classList.remove('hidden');
+    document.getElementById('last-photo-preview').src = base64String;
+    
+    showNotification (`📸 Foto capturada e salva com sucesso (ID: ${id})!`, 'success');
+  }).catch(e => {
+    console.error(e);
+    showNotification ('🚨 Erro ao salvar foto: '+(e.message), 'error');
+  });
 
-  // 🔹 Limpa canvas da memória após salvar (melhor desempenho)
-  canvasEl.width = 0;
-  canvasEl.height = 0;
+  // 🔹 Efeito "flash" e limpeza da tela
+  canvasEl.classList.remove('hidden'); videoEl.classList.add('hidden');
+  setTimeout(()=>{ videoEl.classList.remove('hidden');
+  canvasEl.classList.add('hidden'); },500);
 }
-
-
-// Chama a função de salvar com a string Base64
-savePhoto(base64String).then(id => {
-    // 1. Garante que o ID da foto seja salvo como a resposta para a pergunta
-    if (currentPhotoInputId) {
-        APP_STATE.respostasFormulario[currentPhotoInputId] = id;
-        // 2. Atualiza o display do ID no formulário (onde estava o N/A)
-        const displayElement = document.getElementById(`display_${currentPhotoInputId}`);
-        if(displayElement) displayElement.textContent = id;
-    } else {
-        console.warn('currentPhotoInputId está vazio. ID salvo no DB, mas não no formulário.');
-    }
-    
-    // 3. Atualiza o preview e o ID na modal da câmera (Confirmação)
-    document.getElementById('last-photo-id').textContent = id;
-    document.getElementById('photo-info').classList.remove('hidden');
-    document.getElementById('last-photo-preview').src = base64String;
-    
-    showNotification (`📸 Foto capturada e salva com sucesso (ID: ${id})!`, 'success');
-}).catch(e => {
-    console.error(e);
-    showNotification ('🚨 Erro ao salvar foto: '+(e.message), 'error');
-});
-
-canvasEl.classList.remove('hidden'); videoEl.classList.add('hidden');
-setTimeout(()=>{ videoEl.classList.remove('hidden');
-canvasEl.classList.add('hidden'); },500);
-
 
 function closeModalAndStopCamera(){
 document.getElementById('camera-modal').classList.add('hidden');
@@ -754,14 +744,6 @@ if('serviceWorker' in navigator){
     .then(() => console.log('SW registrado'))
     .catch(err => console.warn('Falha SW', err));
 }
-window.addEventListener('load', async () => {
-  try {
-    await initIndexedDB();
-    console.log("IndexedDB inicializado com sucesso!");
-  } catch (e) {
-    showNotification("Erro ao inicializar banco local. Recarregue a página.", "error");
-  }
-});
 
 </script>
 </body>
