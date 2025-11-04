@@ -418,15 +418,56 @@ async function startCamera() {
 }
 
 // [Source: 252] Corrigido: Captura foto da câmera e salva no IndexedDB
+// [Source: 149] Corrigido: Captura foto da câmera e salva no IndexedDB
 function capturePhoto() {
-  const videoEl = document.getElementById('video');
-  const canvasEl = document.getElementById('canvas');
-  const ctx = canvasEl.getContext('2d');
+    const videoEl = document.getElementById('video');
+    const canvasEl = document.getElementById('canvas');
+    const ctx = canvasEl.getContext('2d');
 
-  if (!stream || videoEl.paused || videoEl.ended) {
-    showNotification('A câmera não está ativa.', 'error');
-    return;
-  }
+    if (!stream || videoEl.paused || videoEl.ended) {
+        showNotification('A câmera não está ativa.', 'error');
+        return;
+    }
+
+    // 🔹 Desenha frame atual no canvas
+    ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+    // 🔹 Reduz qualidade para celular (0.5 = 50%)
+    const base64String = canvasEl.toDataURL('image/jpeg', window.innerWidth < 800 ? 0.5 : 0.7);
+
+    // 🔹 Salva no banco local
+    savePhoto(base64String)
+        .then(id => { // <-- Recebe o ID da foto
+            // 1. Garante que o ID da foto seja salvo como a resposta para a pergunta
+            if (currentPhotoInputId) {
+                APP_STATE.respostasFormulario[currentPhotoInputId] = id;
+                // 2. Atualiza o display do ID no formulário (onde estava o N/A)
+                const displayElement = document.getElementById(`display_${currentPhotoInputId}`);
+                if (displayElement) displayElement.textContent = id;
+            } else {
+                console.warn('currentPhotoInputId está vazio. ID salvo no DB, mas não no formulário.');
+            }
+
+            // 3. Atualiza o preview e o ID na modal da câmera (Confirmação)
+            document.getElementById('last-photo-id').textContent = id;
+            document.getElementById('photo-info').classList.remove('hidden');
+            document.getElementById('last-photo-preview').src = base64String;
+
+            showNotification(`📸 Foto capturada e salva com sucesso (ID: ${id})!`, 'success');
+
+            // 🔹 Efeito "flash" e limpeza da tela
+            canvasEl.classList.remove('hidden');
+            videoEl.classList.add('hidden');
+            setTimeout(() => {
+                videoEl.classList.remove('hidden');
+                canvasEl.classList.add('hidden');
+            }, 500);
+
+        })
+        .catch(e => {
+            console.error(e);
+            showNotification('🚨 Erro ao salvar foto: ' + (e.message), 'error');
+        });
+}
 
   // 🔹 Desenha frame atual no canvas
   ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
@@ -434,33 +475,50 @@ function capturePhoto() {
   // 🔹 CORREÇÃO DE MEMÓRIA: Reduz a qualidade para 50%/70%
   const base64String = canvasEl.toDataURL('image/jpeg', window.innerWidth < 800 ? 0.5 : 0.7);
 
-  // 🔹 Chama a função de salvar com a string Base64 e ATUALIZA O FORMULÁRIO
-  savePhoto(base64String).then(id => {
-    // 1. Garante que o ID da foto seja salvo como a resposta para a pergunta
-    if (currentPhotoInputId) {
-        APP_STATE.respostasFormulario[currentPhotoInputId] = id;
-        // 2. Atualiza o display do ID no formulário (onde estava o N/A)
-        const displayElement = document.getElementById(`display_${currentPhotoInputId}`);
-        if(displayElement) displayElement.textContent = id;
-    } else {
-        console.warn('currentPhotoInputId está vazio. ID salvo no DB, mas não no formulário.');
-    }
-    
-    // 3. Atualiza o preview e o ID na modal da câmera (Confirmação)
-    document.getElementById('last-photo-id').textContent = id;
-    document.getElementById('photo-info').classList.remove('hidden');
-    document.getElementById('last-photo-preview').src = base64String;
-    
-    showNotification (`📸 Foto capturada e salva com sucesso (ID: ${id})!`, 'success');
-  }).catch(e => {
-    console.error(e);
-    showNotification ('🚨 Erro ao salvar foto: '+(e.message), 'error');
-  });
+ // [Source: 133] Corrigido: Função de salvar foto no IndexedDB
+function savePhoto(base64String) {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            showNotification('IndexedDB indisponível. Recarregue a página.', 'error');
+            return reject(new Error('IndexedDB indisponível'));
+        }
 
-  // 🔹 Efeito "flash" e limpeza da tela
-  canvasEl.classList.remove('hidden'); videoEl.classList.add('hidden');
-  setTimeout(()=>{ videoEl.classList.remove('hidden');
-  canvasEl.classList.add('hidden'); },500);
+        try {
+            // 1. Geração do ID (usando o photoCounter global)
+            const photoId = String(photoCounter).padStart(3, '0');
+            // 2. CORREÇÃO: Usa a constante STORE_PHOTOS ('FotosVisitas')
+            const tx = db.transaction([STORE_PHOTOS], 'readwrite');
+            const store = tx.objectStore(STORE_PHOTOS);
+
+            // 3. CRÍTICO: TRATAMENTO DE ERRO DE TRANSAÇÃO (Captura falhas de memória/espaço)
+            tx.onerror = (e) => {
+                console.error("Falha na transação do DB:", e.target.error);
+                const errorName = e.target.error.name || 'Erro desconhecido.';
+                showNotification(`Falha na transação do DB: ${errorName} (Espaço/Memória).`, 'error');
+                reject(e.target.error);
+            };
+
+            // 4. Estrutura de objeto correta (com a chave 'id')
+            const data = { id: photoId, data: base64String, timestamp: new Date().toISOString() };
+            const req = store.add(data);
+
+            req.onsuccess = () => {
+                console.log(`📸 Foto salva com sucesso no IndexedDB (ID: ${photoId})`);
+                photoCounter++; // Incrementa o contador
+                resolve(photoId); // CRÍTICO: Retorna o ID para a função chamadora
+            };
+
+            req.onerror = (event) => {
+                console.error("❌ Erro ao salvar foto:", event.target.error);
+                showNotification("Erro ao salvar foto localmente: " + (event.target.error.name || event.target.error.message), "error");
+                reject(event.target.error);
+            };
+        } catch (error) {
+            console.error("❌ Falha inesperada ao salvar foto:", error);
+            showNotification("Erro interno ao salvar imagem.", "error");
+            reject(error);
+        }
+    });
 }
 
 function closeModalAndStopCamera(){
@@ -800,3 +858,4 @@ if('serviceWorker' in navigator){
 </script>
 </body>
 </html>
+
