@@ -286,7 +286,8 @@ if(saved) APP_STATE.respostasFormulario = JSON.parse(saved);
 // ===========================================
 const ROTEIRO_JSON = [
 {"id":1,"secao":"Geral","pergunta":"Há presença ou vestígios da presença de animais domésticos na unidade?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
-{"id":2,"secao":"Geral","pergunta":"Anexe evidências da presença de animais domésticos (potes de água, cama, o animal)","tipoinput":"file","opcao":"","condicao":"Sim","pai":"1"},    {"id":3,"secao":"Geral","pergunta":"Houve ocorrência de algum acidente ambiental na unidade no período avaliado?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
+{"id":2,"secao":"Geral","pergunta":"Anexe evidências da presença de animais domésticos (potes de água, cama, o animal)","tipoinput":"file","opcao":"","condicao":"Sim","pai":"1"},   
+{"id":3,"secao":"Geral","pergunta":"Houve ocorrência de algum acidente ambiental na unidade no período avaliado?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
 {"id":4,"secao":"Geral","pergunta":"Anexe evidências do acidente ocorrido e uma descrição","tipoinput":"file","opcao":"","condicao":"Sim","pai":"3"},
 {"id":5,"secao":"Geral","pergunta":"descrição do acidente ocorrido","tipoinput":"textarea","opcao":"","condicao":"Sim","pai":"3"},
 {"id":6,"secao":"Geral","pergunta":"Faltam placas educativas e de identificação do manancial na unidade ou necessitando de substituição?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
@@ -296,7 +297,7 @@ const ROTEIRO_JSON = [
 {"id":10,"secao":"Geral","pergunta":"Evidência fotográfica:","tipoinput":"file","opcao":"","condicao":"Sim","pai":"9"},
 {"id":11,"secao":"Geral","pergunta":"Há utilização de equipamentos que consumam combustíveis fósseis?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
 {"id":12,"secao":"Geral","pergunta":"Cite os  equipamentos:","tipoinput":"textarea","opcao":"","condicao":"Sim","pai":"11"},
-{"id":13,"secao":"Energia","pergunta":"Qual a principal fonte de energia elétrica da unidade?","tipoinput":"checkboxGroup","opcao":"Elétrica concessionária;Fotovoltaica (solar)";"Gerador a combustível fóssil";"Geração hidráulica","condicao":"","pai":""},
+{"id":13,"secao":"Energia","pergunta":"Qual a principal fonte de energia elétrica da unidade?","tipoinput":"checkboxGroup","opcao":"Elétrica concessionária;Fotovoltaica (solar);Gerador a combustível fóssil;Geração hidráulica","condicao":"","pai":""},
 {"id":14,"secao":"Geradores","pergunta":"Há geradores na unidade?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
 {"id":15,"secao":"Geradores","pergunta":"Para que são utilizados os geradores?","tipoinput":"textarea","opcao":"","condicao":"Sim","pai":"14"},
 {"id":16,"secao":"Geradores","pergunta":"Qual o combustível é utilizado?","tipoinput":"checkboxGroup","opcao":"Gasolina;Diesel;Etanol","condicao":"Sim","pai":"14"},
@@ -793,5 +794,6 @@ if('serviceWorker' in navigator){
 </script>
 </body>
 </html>
+
 
 
