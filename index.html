@@ -10,36 +10,23 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <style>
-  input::placeholder {
-    color: #9ca3af;
-    opacity: 1;
-  }
-  body {
-    background-color: #f8f9fa;
-    margin: 0;
-    padding: 0;
-    font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-  }
-  .logo { width: 100%; max-width: 180px; margin: 10px auto; display: block }
-  .btn { font-weight: 600; border-radius: 8px }
-  .section-card { background: white; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin-bottom: 20px; padding: 15px }
-  .section-title { color: #0C3C78; font-weight: 700; margin-bottom: 10px }
-  .progress-bar { background-color: #51C751 }
-  #mapa_local { height: 80vh; border-radius: 8px }
-  #video, #canvas { width: 100%; max-width: 100%; height: auto; border-radius: 0.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.12); background: #374151; object-fit: cover }
+input::placeholder { color: #9ca3af; opacity: 1; }
+body { background-color: #f8f9fa; margin:0; padding:0; font-family:Inter,system-ui; }
+.logo { width: 100%; max-width: 180px; margin: 10px auto; display:block }
+.btn { font-weight: 600; border-radius:8px }
+.section-card { background: white; border-radius: 12px; box-shadow:0 2px 6px rgba(0,0,0,0.08); margin-bottom: 20px; padding: 15px }
+.section-title{ color:#0C3C78; font-weight:700; margin-bottom: 10px }
+#mapa_local{ height: 80vh; border-radius: 8px }
+#video, #canvas{ width: 100%; height: auto; border-radius:0.5rem; box-shadow:0 2px 4px rgba(0,0,0,0.12); background: #374151; object-fit:cover }
 </style>
 </head>
 <body>
-
-<!-- notificações -->
 <div id="message-box" class="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-sm p-4 bg-red-500 text-white font-bold rounded-b-lg shadow-xl z-50 hidden"></div>
 
-<!-- loading -->
 <div id="loading-spinner" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
   <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
 </div>
 
-<!-- modal da câmera -->
 <div id="camera-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-40 p-4">
   <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-lg">
     <h3 class="text-2xl font-bold mb-4 text-gray-700">Capturar Foto</h3>
@@ -60,9 +47,7 @@
   </div>
 </div>
 
-<!-- conteúdo principal -->
 <div class="p-4 md:p-8">
-  <!-- página inicial -->
   <div id="pagina_inicial" class="container mx-auto">
     <div class="flex flex-col md:flex-row md:space-x-4">
       <div class="md:w-1/3 p-4 bg-white rounded-xl shadow-lg mb-6 md:mb-0">
@@ -70,12 +55,12 @@
         <h4 class="text-xl font-bold text-center mt-2 mb-4 text-gray-700">Formulário de Visita Técnica</h4>
 
         <div class="mb-4">
-          <label for="avaliador" class="block text-gray-700 font-medium mb-1">1. Nome do Avaliador:</label>
+          <label class="block text-gray-700 font-medium mb-1">1. Nome do Avaliador:</label>
           <input type="text" id="avaliador" placeholder="Digite o nome do avaliador" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400" />
         </div>
 
         <div class="mb-6">
-          <label for="local" class="block text-gray-700 font-medium mb-1">2. Local da Visita:</label>
+          <label class="block text-gray-700 font-medium mb-1">2. Local da Visita:</label>
           <input type="text" id="local" placeholder="Digite o local da visita" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400" />
         </div>
 
@@ -89,7 +74,6 @@
     </div>
   </div>
 
-  <!-- página formulário -->
   <div id="pagina_formulario" class="container mx-auto hidden">
     <div class="text-center mb-6">
       <img src="icon.png" alt="Logo CEDAE Pequeno" class="h-8 mx-auto mb-2">
@@ -99,7 +83,7 @@
 
     <div class="flex justify-center mb-6">
       <div class="w-full max-w-sm">
-        <label for="secao_select" class="block text-gray-700 font-medium mb-1">Selecionar Seção:</label>
+        <label class="block text-gray-700 font-medium mb-1">Selecionar Seção:</label>
         <select id="secao_select" class="w-full p-2 border border-gray-300 rounded-lg"></select>
       </div>
     </div>
@@ -111,53 +95,181 @@
     <div class="text-center my-8 space-y-4">
       <button id="salvar_respostas" class="btn bg-green-600 hover:bg-green-700 text-white py-3 px-8 shadow-lg w-full max-w-sm">Salvar Respostas no LocalDB</button>
       <p id="local-db-status" class="text-sm text-gray-500">Último salvamento: N/A</p>
-      <button id="baixar_relatorio_csv" class="btn bg-blue-600 hover:bg-blue-700 text-white py-3 px-8 shadow-lg w-full max-w-sm mt-4">Baixar Relatório de Dados (CSV)</button>
-      <button id="baixar_fotos_jpeg" class="btn bg-red-600 hover:bg-red-700 text-white py-3 px-8 shadow-lg w-full max-w-sm mt-4">Baixar Todas as Fotos (JPEG)</button>
+      <button id="baixar_relatorio_csv" class="btn bg-blue-600 hover:bg-blue-700 text-white py-3 px-8 shadow-lg w-full max-w-sm mt-4">Baixar Relatório (CSV)</button>
+      <button id="baixar_fotos_jpeg" class="btn bg-red-600 hover:bg-red-700 text-white py-3 px-8 shadow-lg w-full max-w-sm mt-4">Baixar Fotos (JPEG)</button>
       <button id="btn-recomecar" class="btn bg-gray-500 hover:bg-gray-600 text-white py-3 px-8 shadow-lg w-full max-w-sm mt-4">🔄 Recomeçar</button>
     </div>
   </div>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script>  // Função para recomeçar o formulário
-document.getElementById('btn-recomecar').addEventListener('click', () => {
-  // Limpa os campos
-  document.getElementById('avaliador').value = '';
-  document.getElementById('local').value = '';
+<script>
+// ===========================================
+// VARIÁVEIS DE ESTADO E CONSTANTES GLOBAIS
+// ===========================================
+const DB_VERSION = 1;
+const DB_NAME = 'VisitaTecnicaDB';
+const STORE_PHOTOS = 'FotosVisitas';
+const STORE_ANSWERS = 'RespostasVisitas';
+let db = null;
+let mapa = null;
+let stream = null; // Para controlar o acesso à câmera
+let currentPhotoInputId = null; // ID da pergunta que está requisitando a foto
+let photoCounter = 1; // CRÍTICO: Contador para gerar o ID da próxima foto. Inicializado em initIndexedDB
+const APP_STATE = {
+    avaliador: '',
+    local: '',
+    respostasFormulario: {}
+};
 
-  // Retorna à página inicial
-  document.getElementById('pagina_inicial').classList.remove('hidden');
-  document.getElementById('pagina_formulario').classList.add('hidden');
+// ===========================================
+// FUNÇÕES UTILITÁRIAS
+// ===========================================
+function showNotification(msg, type='error') {
+  const box = document.getElementById('message-box');
+  box.textContent = msg;
+  box.classList.remove('hidden','bg-red-500','bg-green-500');
+  box.classList.add(type==='error'?'bg-red-500':'bg-green-500');
+  setTimeout(()=>box.classList.add('hidden'),4000);
+}
 
-  // Limpa o conteúdo do formulário (opcional)
-  document.getElementById('conteudo_secao').innerHTML = `
-    <div class="section-card bg-gray-100 text-gray-500 text-center py-12">
-      Selecione uma seção acima para começar a responder.
-    </div>
-  `;
+function showSpinner(){
+    document.getElementById('loading-spinner').classList.remove('hidden');
+}
 
-  // Mostra o mapa novamente (caso precise reativar)
-  if (window.mapa) {
-    setTimeout(() => { window.mapa.invalidateSize(); }, 200);
-  }
+function hideSpinner(){
+    document.getElementById('loading-spinner').classList.add('hidden');
+}
+
+// ===========================================
+// FUNÇÕES DE MANIPULAÇÃO DO INDEXEDDB (CORRIGIDAS)
+// ===========================================
+function getLastPhotoId() {
+    return new Promise((resolve) => {
+        if (!db) return resolve(0);
+        
+        // Transação apenas de leitura
+        const tx = db.transaction([STORE_PHOTOS], 'readonly');
+        const store = tx.objectStore(STORE_PHOTOS);
+        
+        // Abre o cursor na ordem inversa (pega o último registro)
+        const req = store.openCursor(null, 'prev'); 
+        
+        req.onsuccess = (e) => {
+            const cur = e.target.result;
+            if (cur) {
+                // Pega o ID (ex: '001'), converte para inteiro e retorna.
+                const lastId = parseInt(cur.value.id) || 0; 
+                resolve(lastId); 
+            } else {
+                resolve(0); // Não há fotos salvas
+            }
+        };
+        req.onerror = () => resolve(0); // Em caso de erro, resolve para 0
+    });
+}
+
+async function initIndexedDB(){
+  return new Promise((resolve,reject)=>{
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = e=>{
+      const dbtemp = e.target.result;
+      if(!dbtemp.objectStoreNames.contains(STORE_PHOTOS))
+        dbtemp.createObjectStore(STORE_PHOTOS,{keyPath:'id'});
+      if(!dbtemp.objectStoreNames.contains(STORE_ANSWERS))
+        dbtemp.createObjectStore(STORE_ANSWERS,{keyPath:'id'});
+    };
+    
+    // CRÍTICO: Configura o estado da aplicação após o sucesso da conexão
+    request.onsuccess=e=>{ 
+        db=e.target.result; 
+        getLastPhotoId().then(last => {
+            photoCounter = Math.max(1, last + 1); // Garante que comece em 1 ou no último ID + 1
+            loadInitialAnswers();
+            resolve();
+        }).catch(() => {
+            photoCounter = 1;
+            loadInitialAnswers();
+            resolve();
+        });
+    };
+    request.onerror=e=>{ showNotification('Erro ao iniciar IndexedDB','error'); reject(); };
+  });
+}
+
+function savePhoto(base64String) {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            showNotification('IndexedDB indisponível. Recarregue a página.', 'error');
+            return reject(new Error('IndexedDB indisponível'));
+        }
+
+        try {
+            // 1. Geração do ID (usando o photoCounter global)
+            const photoId = String(photoCounter).padStart(3, '0');
+            // 2. Usa a constante STORE_PHOTOS ('FotosVisitas')
+            const tx = db.transaction([STORE_PHOTOS], 'readwrite');
+            const store = tx.objectStore(STORE_PHOTOS);
+
+            // 3. CRÍTICO: TRATAMENTO DE ERRO DE TRANSAÇÃO (Captura falhas de memória/espaço)
+            tx.onerror = (e) => {
+                console.error("Falha na transação do DB:", e.target.error);
+                const errorName = e.target.error.name || 'Erro desconhecido.';
+                showNotification(`Falha na transação do DB: ${errorName} (Espaço/Memória).`, 'error');
+                reject(e.target.error);
+            };
+
+            // 4. Estrutura de objeto correta (com a chave 'id')
+            const data = { id: photoId, data: base64String, timestamp: new Date().toISOString() };
+            const req = store.add(data);
+
+            req.onsuccess = () => {
+                console.log(`📸 Foto salva com sucesso no IndexedDB (ID: ${photoId})`);
+                photoCounter++; // Incrementa o contador
+                resolve(photoId); // CRÍTICO: Retorna o ID para a função chamadora
+            };
+            req.onerror = (event) => {
+                console.error("❌ Erro ao salvar foto:", event.target.error);
+                showNotification("Erro ao salvar foto localmente: " + (event.target.error.name || event.target.error.message), "error");
+                reject(event.target.error);
+            };
+        } catch (error) {
+            console.error("❌ Falha inesperada ao salvar foto:", error);
+            showNotification("Erro interno ao salvar imagem.", "error");
+            reject(error);
+        }
+    });
+}
+
+function saveAllAnswersToDB(){
+return new Promise((resolve, reject)=>{
+if(!db) return reject(new Error('IndexedDB não disponível'));
+const tx = db.transaction ([STORE_ANSWERS], 'readwrite');
+const store =
+tx.objectStore (STORE_ANSWERS);
+const report = { id: `report_${Date.now()}`, timestamp:new
+Date().toISOString(), avaliador: APP_STATE.avaliador, local: APP_STATE.local,
+respostas: JSON.stringify(APP_STATE.respostasFormulario) };
+const req = store.put(report);
+req.onsuccess = ()=>{ document.getElementById('local-db-status').textContent = `Último salvamento: ${new
+Date().toLocaleTimeString('pt-BR')}`; resolve(); };
+req.onerror = (e)=>{ showNotification ('Erro ao salvar: '+
+(e.target?.error?.message||e.message), 'error'); reject(e); };
 });
-/* ⚙️ INÍCIO DO SCRIPT */
+}
 
-// Função de recomeçar
-document.getElementById('btn-recomecar').addEventListener('click', () => {
-  document.getElementById('avaliador').value = '';
-  document.getElementById('local').value = '';
-  document.getElementById('pagina_inicial').classList.remove('hidden');
-  document.getElementById('pagina_formulario').classList.add('hidden');
-  document.getElementById('conteudo_secao').innerHTML = `
-    <div class="section-card bg-gray-100 text-gray-500 text-center py-12">
-      Selecione uma seção acima para começar a responder.
-    </div>`;
-  if (window.mapa) setTimeout(() => { window.mapa.invalidateSize(); }, 200);
-});
+function loadInitialAnswers(){
+APP_STATE.avaliador = localStorage.getItem('avaliador') || '';
+APP_STATE.local = localStorage.getItem('local') || '';
+document.getElementById('avaliador').value = APP_STATE.avaliador;
+document.getElementById('local').value = APP_STATE.local;
+const saved = localStorage.getItem('respostasFormulario');
+if(saved) APP_STATE.respostasFormulario = JSON.parse(saved);
+}
 
-//
-// ROTEIRO (JSON corrigido)
+// ===========================================
+// ROTEIRO JSON
+// ===========================================
 const ROTEIRO_JSON = [
 {"id":1,"secao":"Geral","pergunta":"Há presença ou vestígios da presença de animais domésticos na unidade?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
 {"id":2,"secao":"Geral","pergunta":"Anexe evidências da presença de animais domésticos (potes de água, cama, o animal)","tipoinput":"file","opcao":"","condicao":"Sim","pai":"1"},    {"id":3,"secao":"Geral","pergunta":"Houve ocorrência de algum acidente ambiental na unidade no período avaliado?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
@@ -201,167 +313,9 @@ const ROTEIRO_JSON = [
 {"id":41,"secao":"Resíduos Sólidos","pergunta":"Registro fotográfico ","tipoinput":"file","opcao":"","condicao":"","pai":""}
 ];
 //
-// Estado global
-const DB_NAME = 'VisitaTecnicaDB';
-const STORE_PHOTOS = 'FotosVisitas';
-const STORE_ANSWERS = 'RespostasVisitas';
-const APP_STATE = { avaliador: '', local: '', respostasFormulario: {} };
-let db = null; let photoCounter = 1;
-let stream = null; let
-currentPhotoInputId = null;
-
-function showNotification(msg, type='error'){
-const box = document.getElementById('message-box');
-box.textContent = msg; box.classList.remove('hidden', 'bg-red-500', 'bg-green-500');
-box.classList.add(type==='error'?'bg-red-500': 'bg-green-500');
-setTimeout(()=> box.classList.add('hidden'), 5000);
-}
-function showSpinner() { document.getElementById('loading-spinner').classList.remove('hidden'); }
-function hideSpinner() { document.getElementById('loading-spinner').classList.add('hidden'); }
-
-// IndexedDB init
-// [Source: ~Linha 200] Substitua sua função initIndexedDB()
-
-function initIndexedDB() {
-    return new Promise((resolve, reject) => {
-        // Usa a versão mais atualizada e padronizada do IndexedDB
-        const request = indexedDB.open(DB_NAME, DB_VERSION); 
-
-        // 1. OCORRE SE O BANCO DE DADOS AINDA NÃO EXISTE OU A VERSÃO FOI ATUALIZADA
-        request.onupgradeneeded = (e) => {
-            const db_temp = e.target.result;
-            // Verifica se a Object Store já existe antes de criar
-            if (!db_temp.objectStoreNames.contains(STORE_PHOTOS)) {
-                // CRÍTICO: Cria a Object Store com 'id' como chave primária única
-                db_temp.createObjectStore(STORE_PHOTOS, {
-                    keyPath: 'id'
-                }); 
-                console.log(`Object Store ${STORE_PHOTOS} criada.`);
-            }
-        };
-
-        // 2. OCORRE QUANDO A CONEXÃO É ESTABELECIDA COM SUCESSO
-        request.onsuccess = (e) => {
-            db = e.target.result;
-            console.log('IndexedDB pronto para uso.');
-            // Após a inicialização, tenta obter o último ID salvo
-            getLastPhotoId().then(last => {
-                // photoCounter começa em 1 ou no último ID + 1
-                photoCounter = Math.max(1, last + 1); 
-                loadInitialAnswers();
-                resolve();
-            }).catch(() => {
-                // Se falhar ao buscar o último ID, inicia em 1.
-                photoCounter = 1;
-                loadInitialAnswers();
-                resolve();
-            });
-        };
-
-        // 3. OCORRE SE HOUVER ALGUM ERRO (PERMISSÃO NEGADA, etc.)
-        request.onerror = (e) => {
-            console.error("Erro ao abrir IndexedDB:", e.target.error);
-            showNotification("Erro ao inicializar banco de dados local. Recarregue a página.", "error");
-            reject(e.target.error);
-        };
-    });
-}
-// [Source: ~Linha 237] Substitua sua função savePhoto()
-
-function savePhoto (base64String) {
-    return new Promise((resolve, reject)=>{
-        if(!db) { 
-            showNotification('Erro: Banco de dados local não está pronto. Recarregue a página.', 'error');
-            return reject(new Error('IndexedDB indisponível'));
-        }
-        
-        const photoId = String(photoCounter).padStart(3,'0');
-        const tx = db.transaction([STORE_PHOTOS], 'readwrite');
-        const store = tx.objectStore(STORE_PHOTOS);
-        
-        // CRÍTICO: TRATAMENTO DE ERRO DE TRANSAÇÃO (Captura QuotaExceededError - Falta de espaço)
-        tx.onerror = (e) => {
-            console.error("ERRO NA TRANSAÇÃO DB:", e.target.error);
-            // Nome do erro pode ser QuotaExceededError se o armazenamento estiver cheio
-            const errorName = e.target.error.name || 'Erro desconhecido.';
-            showNotification(`Falha no salvamento da foto: ${errorName}. (Possível falta de espaço)`, 'error');
-            reject(e.target.error);
-        };
-
-        const data = { id: photoId, data: base64String, timestamp: new Date().toISOString()};
-        const req = store.add(data);
-        
-        req.onsuccess = ()=>{ 
-            photoCounter++; 
-            resolve (photoId); 
-        };
-        req.onerror = (e)=>{ 
-            console.error("ERRO NA REQUISIÇÃO ADD:", e.target.error);
-            showNotification ('Erro ao salvar foto: '+ (e.target.error.message || e.message), 'error'); 
-            reject(e.target.error); 
-        };
-    });
-}
-// [Source: ~Linha 237] Substitua sua função savePhoto()
-
-function savePhoto (base64String) {
-    return new Promise((resolve, reject)=>{
-        if(!db) { 
-            showNotification('Erro: Banco de dados local não está pronto. Recarregue a página.', 'error');
-            return reject(new Error('IndexedDB indisponível'));
-        }
-        
-        const photoId = String(photoCounter).padStart(3,'0');
-        const tx = db.transaction([STORE_PHOTOS], 'readwrite');
-        const store = tx.objectStore(STORE_PHOTOS);
-        
-        // CRÍTICO: TRATAMENTO DE ERRO DE TRANSAÇÃO (Captura QuotaExceededError - Falta de espaço)
-        tx.onerror = (e) => {
-            console.error("ERRO NA TRANSAÇÃO DB:", e.target.error);
-            // Nome do erro pode ser QuotaExceededError se o armazenamento estiver cheio
-            const errorName = e.target.error.name || 'Erro desconhecido.';
-            showNotification(`Falha no salvamento da foto: ${errorName}. (Possível falta de espaço)`, 'error');
-            reject(e.target.error);
-        };
-
-        const data = { id: photoId, data: base64String, timestamp: new Date().toISOString()};
-        const req = store.add(data);
-        
-        req.onsuccess = ()=>{ 
-            photoCounter++; 
-            resolve (photoId); 
-        };
-        req.onerror = (e)=>{ 
-            console.error("ERRO NA REQUISIÇÃO ADD:", e.target.error);
-            showNotification ('Erro ao salvar foto: '+ (e.target.error.message || e.message), 'error'); 
-            reject(e.target.error); 
-        };
-    });
-}
-function saveAllAnswersToDB(){
-return new Promise((resolve, reject)=>{
-if(!db) return reject(new Error('IndexedDB não disponível'));
-const tx = db.transaction ([STORE_ANSWERS], 'readwrite');
-const store =
-tx.objectStore (STORE_ANSWERS);
-const report = { id: `report_${Date.now()}`, timestamp:new
-Date().toISOString(), avaliador: APP_STATE.avaliador, local: APP_STATE.local,
-respostas: JSON.stringify(APP_STATE.respostasFormulario) };
-const req = store.put(report);
-req.onsuccess = ()=>{ document.getElementById('local-db-status').textContent = `Último salvamento: ${new
-Date().toLocaleTimeString('pt-BR')}`; resolve(); };
-req.onerror = (e)=>{ showNotification ('Erro ao salvar: '+
-(e.target?.error?.message||e.message), 'error'); reject(e); };
-});
-}
-function loadInitialAnswers(){
-APP_STATE.avaliador = localStorage.getItem('avaliador') || 'Nome do Avaliador';
-APP_STATE.local = localStorage.getItem('local') || 'Local da Visita';
-document.getElementById('avaliador').value = APP_STATE.avaliador;
-document.getElementById('local').value = APP_STATE.local;
-const saved = localStorage.getItem('respostasFormulario');
-if(saved) APP_STATE.respostasFormulario = JSON.parse(saved);
-}
+// ===========================================
+// FUNÇÕES DA CÂMERA
+// ===========================================
 // 🌿 Função para ligar/desligar a câmera
 async function startCamera() {
   const videoEl = document.getElementById('video');
@@ -417,8 +371,6 @@ async function startCamera() {
   };
 }
 
-// [Source: 252] Corrigido: Captura foto da câmera e salva no IndexedDB
-// [Source: 149] Corrigido: Captura foto da câmera e salva no IndexedDB
 function capturePhoto() {
     const videoEl = document.getElementById('video');
     const canvasEl = document.getElementById('canvas');
@@ -440,6 +392,7 @@ function capturePhoto() {
             // 1. Garante que o ID da foto seja salvo como a resposta para a pergunta
             if (currentPhotoInputId) {
                 APP_STATE.respostasFormulario[currentPhotoInputId] = id;
+               
                 // 2. Atualiza o display do ID no formulário (onde estava o N/A)
                 const displayElement = document.getElementById(`display_${currentPhotoInputId}`);
                 if (displayElement) displayElement.textContent = id;
@@ -451,9 +404,7 @@ function capturePhoto() {
             document.getElementById('last-photo-id').textContent = id;
             document.getElementById('photo-info').classList.remove('hidden');
             document.getElementById('last-photo-preview').src = base64String;
-
             showNotification(`📸 Foto capturada e salva com sucesso (ID: ${id})!`, 'success');
-
             // 🔹 Efeito "flash" e limpeza da tela
             canvasEl.classList.remove('hidden');
             videoEl.classList.add('hidden');
@@ -461,64 +412,11 @@ function capturePhoto() {
                 videoEl.classList.remove('hidden');
                 canvasEl.classList.add('hidden');
             }, 500);
-
         })
         .catch(e => {
             console.error(e);
             showNotification('🚨 Erro ao salvar foto: ' + (e.message), 'error');
         });
-}
-
-  // 🔹 Desenha frame atual no canvas
-  ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
-
-  // 🔹 CORREÇÃO DE MEMÓRIA: Reduz a qualidade para 50%/70%
-  const base64String = canvasEl.toDataURL('image/jpeg', window.innerWidth < 800 ? 0.5 : 0.7);
-
- // [Source: 133] Corrigido: Função de salvar foto no IndexedDB
-function savePhoto(base64String) {
-    return new Promise((resolve, reject) => {
-        if (!db) {
-            showNotification('IndexedDB indisponível. Recarregue a página.', 'error');
-            return reject(new Error('IndexedDB indisponível'));
-        }
-
-        try {
-            // 1. Geração do ID (usando o photoCounter global)
-            const photoId = String(photoCounter).padStart(3, '0');
-            // 2. CORREÇÃO: Usa a constante STORE_PHOTOS ('FotosVisitas')
-            const tx = db.transaction([STORE_PHOTOS], 'readwrite');
-            const store = tx.objectStore(STORE_PHOTOS);
-
-            // 3. CRÍTICO: TRATAMENTO DE ERRO DE TRANSAÇÃO (Captura falhas de memória/espaço)
-            tx.onerror = (e) => {
-                console.error("Falha na transação do DB:", e.target.error);
-                const errorName = e.target.error.name || 'Erro desconhecido.';
-                showNotification(`Falha na transação do DB: ${errorName} (Espaço/Memória).`, 'error');
-                reject(e.target.error);
-            };
-
-            // 4. Estrutura de objeto correta (com a chave 'id')
-            const data = { id: photoId, data: base64String, timestamp: new Date().toISOString() };
-            const req = store.add(data);
-
-            req.onsuccess = () => {
-                console.log(`📸 Foto salva com sucesso no IndexedDB (ID: ${photoId})`);
-                photoCounter++; // Incrementa o contador
-                resolve(photoId); // CRÍTICO: Retorna o ID para a função chamadora
-            };
-
-            req.onerror = (event) => {
-                console.error("❌ Erro ao salvar foto:", event.target.error);
-                showNotification("Erro ao salvar foto localmente: " + (event.target.error.name || event.target.error.message), "error");
-                reject(event.target.error);
-            };
-        } catch (error) {
-            console.error("❌ Falha inesperada ao salvar foto:", error);
-            showNotification("Erro interno ao salvar imagem.", "error");
-            reject(error);
-        }
-    });
 }
 
 function closeModalAndStopCamera(){
@@ -531,11 +429,14 @@ document.getElementById('capture-photo').disabled=true;
 document.getElementById('photo-info').classList.add('hidden');
 applyConditionalLogic();
 }
+
+// ===========================================
+// FUNÇÕES DO FORMULÁRIO
+// ===========================================
 // Render form section
 function renderFormSection(sectionName) {
   const container = document.getElementById('conteudo_secao');
   container.innerHTML = '';
-
   const sectionData = ROTEIRO_JSON.filter(p => p.secao === sectionName);
   if (sectionData.length === 0) {
     container.innerHTML = '<div class="section-card text-gray-500 text-center py-12">Seção não encontrada.</div>';
@@ -545,7 +446,6 @@ function renderFormSection(sectionName) {
   const card = document.createElement('div');
   card.className = 'section-card w-full max-w-4xl mx-auto';
   card.innerHTML = `<h4 class="text-xl section-title">${sectionName}</h4>`;
-
   // 🔽 Loop das perguntas
   sectionData.forEach(p => {
     const inputId = `pergunta_${p.id}`;
@@ -573,7 +473,6 @@ function renderFormSection(sectionName) {
       inputHTML = `
         <label for="${inputId}" class="block text-gray-700 font-medium mb-1">${p.pergunta}</label>
         <textarea id="${inputId}" rows="3" class="w-full p-2 border border-gray-300 rounded-lg">${currentValue}</textarea>`;
-
     } else if (p.tipoinput === 'file') {
       inputHTML = `
         <label class="block text-gray-700 font-medium mb-1">${p.pergunta}</label>
@@ -586,7 +485,6 @@ function renderFormSection(sectionName) {
           </div>
         </div>
         <small class="text-gray-500 mt-1 block">O ID da foto será o valor salvo no relatório.</small>`;
-
     } else if (p.tipoinput === 'checkboxGroup') {
       const initialValue = (Array.isArray(currentValue) ? currentValue.join('; ') : currentValue) || '';
       const savedValues = initialValue.split(';').map(v => v.trim());
@@ -601,7 +499,6 @@ function renderFormSection(sectionName) {
             <label for="${inputId}_chk_${i}" class="text-gray-600">${safe}</label>
           </div>`;
       });
-
     } else {
       inputHTML = `
         <label for="${inputId}" class="block text-gray-700 font-medium mb-1">${p.pergunta}</label>
@@ -653,13 +550,10 @@ function attachFormListeners(){
         // Lógica de Checkbox Group
         const parentId = input.name; // ID da pergunta (ex: pergunta_36)
         const checkboxes = Array.from(document.querySelectorAll(`input[name="${parentId}"]:checked`));
-        
         // Mapeia os valores checados
         const checkedValues = checkboxes.map(chk => chk.getAttribute('data-opt') || chk.value).filter(v => v);
-        
         // Salva os valores checados como uma string separada por ponto e vírgula
         APP_STATE.respostasFormulario[parentId] = checkedValues.join('; ');
-        
       } else if(input.type !== 'file') {
         APP_STATE.respostasFormulario[input.id] = e.target.value;
       }
@@ -692,9 +586,31 @@ document.getElementById('pagina_inicial').classList.add('hidden');
 document.getElementById('pagina_formulario').classList.remove('hidden');
 // seleciona primeira seção encontrada
 const secoes = [...new Set(ROTEIRO_JSON.map(p=>p.secao))];
+document.getElementById('secao_select').innerHTML = secoes.map(sec => `<option value="${sec}">${sec}</option>`).join('');
 document.getElementById('secao_select').value = secoes[0];
 renderFormSection(secoes[0]);
 });
+
+document.getElementById('btn-recomecar').addEventListener('click',()=>{
+    document.getElementById('avaliador').value='';
+    document.getElementById('local').value='';
+    APP_STATE.avaliador = '';
+    APP_STATE.local = '';
+    APP_STATE.respostasFormulario = {};
+    localStorage.removeItem('avaliador');
+    localStorage.removeItem('local');
+    localStorage.removeItem('respostasFormulario');
+
+    document.getElementById('pagina_inicial').classList.remove('hidden');
+    document.getElementById('pagina_formulario').classList.add('hidden');
+    
+    // Invalida o mapa
+    if (mapa) {
+        setTimeout(() => mapa.invalidateSize(), 300);
+    }
+    showNotification('Formulário e dados locais limpos. Recomece o relatório.', 'success');
+  });
+
 document.getElementById('secao_select').addEventListener('change',(e)=>{
 if(e.target.value) renderFormSection(e.target.value); });
 document.getElementById('start-camera').addEventListener('click',
@@ -730,7 +646,8 @@ document.querySelectorAll('#conteudo_secao .form-group').forEach(group => {
 await saveAllAnswersToDB();
 localStorage.setItem('respostasFormulario',
 JSON.stringify(APP_STATE.respostasFormulario)); showNotification('Relatório salvo com sucesso no LocalDB!','success');
-}catch(e){ showNotification('Erro ao salvar o relatório no LocalDB.','error'); } finally{ hideSpinner(); }
+}catch(e){ showNotification('Erro ao salvar o relatório no LocalDB.','error'); } finally{ hideSpinner();
+}
 });
 document.getElementById('baixar_relatorio_csv').addEventListener('click',
 downloadReportCSV); // Listener atualizado para o CSV
@@ -782,7 +699,6 @@ async function downloadAllPhotos() {
         }
 
         showNotification(`✅ ${photos.length} fotos salvas com sucesso! Verifique sua pasta de Downloads.`, 'success');
-
     } catch (e) {
         console.error(e);
         showNotification('Erro ao baixar as fotos: ' + e.message, 'error');
@@ -793,15 +709,15 @@ async function downloadAllPhotos() {
 // Renomeamos downloadCSV para downloadReportCSV e atualizamos o ID no download
 function downloadReportCSV(){
 // Adiciona o BOM para corrigir a codificação UTF-8 no Excel (Correção #1)
-const BOM = '\ufeff'; 
+const BOM = '\ufeff';
 const headers =
 ["Secao","Pergunta","Resposta","Avaliador","Local","Data_Exportacao"];
 const reportRows = ROTEIRO_JSON.map(p=>{ const inputId = `pergunta_${p.id}`; const resposta = APP_STATE.respostasFormulario[inputId] || '';
 // A resposta é um texto simples, mas garantimos que aspas duplas sejam escapadas
 return [`"${p.secao}"`, `"${p.pergunta.replace(/"/g,'""')}"`, `"${String(resposta).replace(/"/g,'""')}"`, `"${APP_STATE.avaliador}"`, `"${APP_STATE.local}"`, `"${new Date().toLocaleString('pt-BR')}"`].join(','); });
-
 const csvContent = headers.join(',') + '\n' + reportRows.join('\n');
-const finalContent = BOM + csvContent; // Adiciona o BOM no início
+const finalContent = BOM + csvContent;
+// Adiciona o BOM no início
 
 const blob = new Blob([finalContent], { type: 'text/csv;charset=utf-8;' });
 const url = URL.createObjectURL(blob);
@@ -813,10 +729,11 @@ const filename = `relatorio_dados_${APP_STATE.local.replace(/\s/g,'_')}_${new Da
 
 link.setAttribute('download', filename); 
 document.body.appendChild(link); link.click();
-document.body.removeChild(link); showNotification('Arquivo CSV gerado com sucesso!','success');
+document.body.removeChild(link);
+showNotification('Arquivo CSV gerado com sucesso!','success');
 }
 async function initApp(){
-await initIndexedDB();
+await initIndexedDB(); // CRÍTICO: Agora inicializa photoCounter e carrega o estado
 const secoes = [...new Set(ROTEIRO_JSON.map(p=>p.secao))];
 const selectEl = document.getElementById('secao_select');
 selectEl.innerHTML = '<option value="">-- Selecione uma seção --</option>';
@@ -825,7 +742,7 @@ opt.value = sec; opt.textContent = sec; selectEl.appendChild(opt); });
 
 const defaultLat = -22.9035;
 const defaultLng = -43.2096;
-const mapa = L.map('mapa_local').setView([defaultLat, defaultLng], 12);
+mapa = L.map('mapa_local').setView([defaultLat, defaultLng], 12); // CRÍTICO: 'mapa' é global
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 attribution: '&copy; OpenStreetMap contributors' }).addTo(mapa);
@@ -858,4 +775,3 @@ if('serviceWorker' in navigator){
 </script>
 </body>
 </html>
-
