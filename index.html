@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8" />
@@ -11,141 +11,115 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <style>
   input::placeholder {
-  color: #9ca3af; /* cinza claro */
-  opacity: 1;
-}
-body { background-color: #f8f9fa; margin:0; padding:0; font-family:
-Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
-Arial; }
-.logo { width: 100%; max-width: 180px; margin: 10px auto; display:block}
-.btn { font-weight: 600; border-radius:8px }
-.section-card { background: white; border-radius: 12px; box-shadow:0 2px
-6px rgba(0,0,0,0.08); margin-bottom: 20px; padding: 15px }
-.section-title{ color:#0C3C78; font-weight:700; margin-bottom: 10px }
-.progress-bar{ background-color:#51C751 }
-#mapa_local{ height: 80vh; border-radius: 8px }
-#video, #canvas{ width: 100%; max-width: 100%; height: auto; border-radius:
-0.5rem; box-shadow:0 2px 4px rgba(0,0,0,0.12); background: #374151; object-fit:cover }
+    color: #9ca3af;
+    opacity: 1;
+  }
+  body {
+    background-color: #f8f9fa;
+    margin: 0;
+    padding: 0;
+    font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  }
+  .logo { width: 100%; max-width: 180px; margin: 10px auto; display: block }
+  .btn { font-weight: 600; border-radius: 8px }
+  .section-card { background: white; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin-bottom: 20px; padding: 15px }
+  .section-title { color: #0C3C78; font-weight: 700; margin-bottom: 10px }
+  .progress-bar { background-color: #51C751 }
+  #mapa_local { height: 80vh; border-radius: 8px }
+  #video, #canvas { width: 100%; max-width: 100%; height: auto; border-radius: 0.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.12); background: #374151; object-fit: cover }
 </style>
 </head>
 <body>
-<div id="message-box" class="fixed top-0 left-1/2 -translate-x-1/2 w-full
-max-w-sm p-4 bg-red-500 text-white font-bold rounded-b-lg shadow-xl z-50
-hidden"></div>
-<div id="loading-spinner" class="fixed inset-0 bg-gray-900 bg-opacity-75
-flex items-center justify-center z-50 hidden">
-<div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2
-border-blue-500"></div>
+
+<!-- notificações -->
+<div id="message-box" class="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-sm p-4 bg-red-500 text-white font-bold rounded-b-lg shadow-xl z-50 hidden"></div>
+
+<!-- loading -->
+<div id="loading-spinner" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+  <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
 </div>
-<div id="camera-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden
-items-center justify-center z-40 p-4">
-<div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-lg">
-<h3 class="text-2xl font-bold mb-4 text-gray-700">Capturar Foto</h3>
-<div id="camera-container" class="flex flex-col items-center mb-4">
-<video id="video" autoplay playsinline class="hidden"></video>
-<canvas id="canvas" class="hidden"></canvas>
-<div id="camera-placeholder" class="w-full max-w-md h-64 flex items-
-center justify-center bg-gray-200 text-gray-500 rounded-lg border-2 border-
-dashed border-gray-400">Aguardando câmera...</div>
+
+<!-- modal da câmera -->
+<div id="camera-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-40 p-4">
+  <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-lg">
+    <h3 class="text-2xl font-bold mb-4 text-gray-700">Capturar Foto</h3>
+    <div id="camera-container" class="flex flex-col items-center mb-4">
+      <video id="video" autoplay playsinline class="hidden"></video>
+      <canvas id="canvas" class="hidden"></canvas>
+      <div id="camera-placeholder" class="w-full max-w-md h-64 flex items-center justify-center bg-gray-200 text-gray-500 rounded-lg border-2 border-dashed border-gray-400">Aguardando câmera...</div>
+    </div>
+    <div id="photo-info" class="mb-4 text-center hidden">
+      <p class="text-sm font-semibold">Último ID Gerado: <span id="last-photo-id" class="text-blue-600">--</span></p>
+      <img id="last-photo-preview" class="w-32 h-32 object-cover rounded-md mx-auto my-2 border-2" alt="Preview da Última Foto">
+    </div>
+    <div class="flex space-x-2">
+      <button id="start-camera" class="w-1/2 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg shadow-md"><span id="camera-btn-text">Iniciar Câmera</span></button>
+      <button id="capture-photo" class="w-1/2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-md" disabled>Tirar Foto</button>
+    </div>
+    <button id="close-modal" class="mt-4 w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Fechar e Voltar ao Formulário</button>
+  </div>
 </div>
-<div id="photo-info" class="mb-4 text-center hidden">
-<p class="text-sm font-semibold">Último ID Gerado: <span id="last-
-photo-id" class="text-blue-600">--</span></p>
-<img id="last-photo-preview"
-class="w-32 h-32 object-cover rounded-md mx-auto my-2 border-2" alt="Preview
-da Última Foto">
-</div>
-<div class="flex space-x-2">
-<button id="start-camera" class="w-1/2 bg-green-500 hover:bg-
-green-600 text-white font-bold py-3 px-4 rounded-lg shadow-md"> <span
-id="camera-btn-text">Iniciar Câmera</span></button>
-<button id="capture-photo"
-class="w-1/2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4
-rounded-lg shadow-md" disabled>Tirar Foto</button>
-</div>
-<button id="close-modal" class="mt-4 w-full bg-gray-500 hover:bg-
-gray-600 text-white font-bold py-2 px-4 rounded-lg">Fechar e Voltar ao
-Formulário</button>
-</div>
-</div>
+
+<!-- conteúdo principal -->
 <div class="p-4 md:p-8">
-<div id="pagina_inicial" class="container mx-auto">
-<div class="flex flex-col md:flex-row md:space-x-4">
-<div class="md:w-1/3 p-4 bg-white rounded-xl shadow-lg mb-6 md:mb-0">
-<img src="icon.png" alt="Logo CEDAE" class="logo">
-<h4 class="text-xl
-font-bold text-center mt-2 mb-4 text-gray-700">Formulário
-de Visita Técnica</h4>
-<div class="mb-4">
-  <label for="avaliador" class="block text-gray-700 font-medium mb-1">1. Nome do Avaliador: </label>
-  <input
-    type="text"
-    id="avaliador"
-    placeholder="Digite o nome do avaliador"
-    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400"
-  />
+  <!-- página inicial -->
+  <div id="pagina_inicial" class="container mx-auto">
+    <div class="flex flex-col md:flex-row md:space-x-4">
+      <div class="md:w-1/3 p-4 bg-white rounded-xl shadow-lg mb-6 md:mb-0">
+        <img src="icon.png" alt="Logo CEDAE" class="logo">
+        <h4 class="text-xl font-bold text-center mt-2 mb-4 text-gray-700">Formulário de Visita Técnica</h4>
+
+        <div class="mb-4">
+          <label for="avaliador" class="block text-gray-700 font-medium mb-1">1. Nome do Avaliador:</label>
+          <input type="text" id="avaliador" placeholder="Digite o nome do avaliador" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400" />
+        </div>
+
+        <div class="mb-6">
+          <label for="local" class="block text-gray-700 font-medium mb-1">2. Local da Visita:</label>
+          <input type="text" id="local" placeholder="Digite o local da visita" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400" />
+        </div>
+
+        <button id="salvar_inicio" class="btn bg-blue-600 hover:bg-blue-700 text-white w-full py-2 shadow-md">Salvar e Continuar</button>
+        <p class="text-xs text-gray-500 mt-4 text-center">App PWA com IndexedDB para uso offline.</p>
+      </div>
+
+      <div class="md:w-2/3">
+        <div id="mapa_local" class="h-96 md:h-full"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- página formulário -->
+  <div id="pagina_formulario" class="container mx-auto hidden">
+    <div class="text-center mb-6">
+      <img src="icon.png" alt="Logo CEDAE Pequeno" class="h-8 mx-auto mb-2">
+      <h5 class="text-xl font-semibold text-gray-800">Relatório Técnico Ambiental</h5>
+      <hr class="border-t-2 border-blue-700 w-3/4 mx-auto mt-2">
+    </div>
+
+    <div class="flex justify-center mb-6">
+      <div class="w-full max-w-sm">
+        <label for="secao_select" class="block text-gray-700 font-medium mb-1">Selecionar Seção:</label>
+        <select id="secao_select" class="w-full p-2 border border-gray-300 rounded-lg"></select>
+      </div>
+    </div>
+
+    <div id="conteudo_secao" class="w-full max-w-4xl mx-auto">
+      <div class="section-card bg-gray-100 text-gray-500 text-center py-12">Selecione uma seção acima para começar a responder.</div>
+    </div>
+
+    <div class="text-center my-8 space-y-4">
+      <button id="salvar_respostas" class="btn bg-green-600 hover:bg-green-700 text-white py-3 px-8 shadow-lg w-full max-w-sm">Salvar Respostas no LocalDB</button>
+      <p id="local-db-status" class="text-sm text-gray-500">Último salvamento: N/A</p>
+      <button id="baixar_relatorio_csv" class="btn bg-blue-600 hover:bg-blue-700 text-white py-3 px-8 shadow-lg w-full max-w-sm mt-4">Baixar Relatório de Dados (CSV)</button>
+      <button id="baixar_fotos_jpeg" class="btn bg-red-600 hover:bg-red-700 text-white py-3 px-8 shadow-lg w-full max-w-sm mt-4">Baixar Todas as Fotos (JPEG)</button>
+      <button id="btn-recomecar" class="btn bg-gray-500 hover:bg-gray-600 text-white py-3 px-8 shadow-lg w-full max-w-sm mt-4">🔄 Recomeçar</button>
+    </div>
+  </div>
 </div>
 
-<div class="mb-6">
-  <label for="local" class="block text-gray-700 font-medium mb-1">2. Local da Visita: </label>
-  <input
-    type="text"
-    id="local"
-    placeholder="Digite o local da visita"
-    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400"
-  />
-</div>
-<button id="salvar_inicio"
-class="btn bg-blue-600 hover:bg-blue-700 text-white w-full py-2 shadow-md">Salvar
-e Continuar
-</button>
-<p class="text-xs text-gray-500 mt-4 text-center">App PWA com
-IndexedDB para uso offline.</p>
-</div>
-<div class="md:w-2/3">
-<div id="mapa_local" class="h-96 md:h-full"></div>
-</div>
-</div>
-</div>
-<div id="pagina_formulario" class="container mx-auto hidden">
-<div class="text-center mb-6">
-<img src="icon.png" alt="Logo CEDAE Pequeno" class="h-8 mx-auto
-mb-2">
-<h5 class="text-xl font-semibold text-gray-800">Relatório Técnico
-Ambiental</h5>
-<hr class="border-t-2 border-blue-700 w-3/4 mx-auto mt-2">
-</div>
-<div class="flex justify-center mb-6">
-<div class="w-full max-w-sm">
-<label for="secao_select" class="block text-gray-700 font-medium
-mb-1">Selecionar Seção: </label>
-<select id="secao_select" class="w-full p-2 border border-gray-300
-rounded-lg"></select>
-</div>
-</div>
-<div id="conteudo_secao" class="w-full max-w-4xl mx-auto">
-<div class="section-card bg-gray-100 text-gray-500 text-center
-py-12">Selecione uma seção acima para começar a responder.</div>
-</div>
-<div class="text-center my-8 space-y-4">
-<button id="salvar_respostas" class="btn bg-green-600 hover:bg-green-700 text-white py-3 px-8 shadow-lg w-full max-w-sm">
-  Salvar Respostas no LocalDB
-</button>
-<p id="local-db-status" class="text-sm text-gray-500">Último salvamento: N/A</p>
-<button id="baixar_relatorio_csv" class="btn bg-blue-600 hover:bg-blue-700
-text-white py-3 px-8 shadow-lg w-full max-w-sm mt-4">Baixar Relatório de Dados (CSV)</button>
-<button id="baixar_fotos_jpeg" class="btn bg-red-600 hover:bg-red-700
-text-white py-3 px-8 shadow-lg w-full max-w-sm mt-4">Baixar Todas as Fotos (JPEG)</button>
-<button id="btn-recomecar" class="btn bg-gray-500 hover:bg-gray-600 text-white py-3 px-8 shadow-lg w-full max-w-sm mt-4">
-  🔄 Recomeçar
-</button>
-
-</div>
-</div>
-</div>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script>
-  // Função para recomeçar o formulário
+<script>  // Função para recomeçar o formulário
 document.getElementById('btn-recomecar').addEventListener('click', () => {
   // Limpa os campos
   document.getElementById('avaliador').value = '';
@@ -166,6 +140,20 @@ document.getElementById('btn-recomecar').addEventListener('click', () => {
   if (window.mapa) {
     setTimeout(() => { window.mapa.invalidateSize(); }, 200);
   }
+});
+/* ⚙️ INÍCIO DO SCRIPT */
+
+// Função de recomeçar
+document.getElementById('btn-recomecar').addEventListener('click', () => {
+  document.getElementById('avaliador').value = '';
+  document.getElementById('local').value = '';
+  document.getElementById('pagina_inicial').classList.remove('hidden');
+  document.getElementById('pagina_formulario').classList.add('hidden');
+  document.getElementById('conteudo_secao').innerHTML = `
+    <div class="section-card bg-gray-100 text-gray-500 text-center py-12">
+      Selecione uma seção acima para começar a responder.
+    </div>`;
+  if (window.mapa) setTimeout(() => { window.mapa.invalidateSize(); }, 200);
 });
 
 //
