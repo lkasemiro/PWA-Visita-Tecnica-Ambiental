@@ -75,13 +75,13 @@ de Visita Técnica</h4>
 <label for="avaliador" class="block text-gray-700 font-medium
 mb-1">1. Nome do Avaliador: </label>
 <input type="text" id="avaliador" class="w-full p-2 border
-border-gray-300 rounded-lg" value="João Silva">
+border-gray-300 rounded-lg" value="Maria Aparecida">
 </div>
 <div class="mb-6">
 <label for="local" class="block text-gray-700 font-medium mb-1">2.
 Local da Visita: </label>
 <input type="text" id="local" class="w-full p-2 border border-
-gray-300 rounded-lg" value="ETA Guandu">
+gray-300 rounded-lg" value="Tinguá">
 </div>
 <button id="salvar_inicio"
 class="btn bg-blue-600 hover:bg-blue-700 text-white w-full py-2 shadow-md">Salvar
@@ -121,16 +121,22 @@ green-700 text-white py-3 px-8 shadow-lg w-full max-w-sm">Salvar Respostas no
 LocalDB</button>
 <p id="local-db-status" class="text-sm text-gray-500">Último
 salvamento: N/A</p>
-<button id="baixar_excel" class="btn bg-blue-600 hover:bg-blue-700
-text-white py-3 px-8 shadow-lg w-full max-w-sm">Baixar CSV (Simulação
-Excel)</button>
+<button id="salvar_respostas" class="btn bg-green-600 hover:bg-
+green-700 text-white py-3 px-8 shadow-lg w-full max-w-sm">Salvar Respostas no
+LocalDB</button>
+<p id="local-db-status" class="text-sm text-gray-500">Último
+salvamento: N/A</p>
+<button id="baixar_relatorio_csv" class="btn bg-blue-600 hover:bg-blue-700
+text-white py-3 px-8 shadow-lg w-full max-w-sm mt-4">Baixar Relatório de Dados (CSV)</button>
+<button id="baixar_fotos_jpeg" class="btn bg-red-600 hover:bg-red-700
+text-white py-3 px-8 shadow-lg w-full max-w-sm mt-4">Baixar Todas as Fotos (JPEG)</button>
 </div>
 </div>
 </div>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
 //
-// ROTEIRO (JSON corrigido e usado como base)
+// ROTEIRO (JSON corrigido)
 const ROTEIRO_JSON = [
 {"id":1,"secao":"Geral","pergunta":"Há presença ou vestígios da presença de animais domésticos na unidade?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
 {"id":2,"secao":"Geral","pergunta":"Anexe evidências da presença de animais domésticos (potes de água, cama, o animal)","tipoinput":"file","opcao":"","condicao":"Sim","pai":"1"},    {"id":3,"secao":"Geral","pergunta":"Houve ocorrência de algum acidente ambiental na unidade no período avaliado?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
@@ -294,7 +300,7 @@ document.getElementById('video');
 const canvasEl =
 document.getElementById('canvas');
 const ctx = canvasEl.getContext('2d');
-if(!stream || videoEl.paused || videoEl.ended) { showNotification('Acâmera não está ativa.', 'error'); return; }
+if(!stream || videoEl.paused || videoEl.ended) { showNotification('A câmera não está ativa.', 'error'); return; }
 
 ctx.drawImage(videoEl,0,0,canvasEl.width, canvasEl.height);
 
@@ -303,22 +309,33 @@ const base64String = canvasEl.toDataURL('image/jpeg', 0.9);
 
 // Chama a função de salvar com a string Base64
 savePhoto(base64String).then(id => {
-    APP_STATE.respostasFormulario [currentPhotoInputId] = id;
-    const display = document.getElementById(`display_${currentPhotoInputId}`);
-    if(display) display.textContent = id;
-    document.getElementById('photo-info').classList.remove('hidden');
-    // O preview usa a string Base64 (Data URL) diretamente
-    document.getElementById('last-photo-preview').src = base64String;
-    showNotification (`Foto capturada e salva (ID: ${id})`, 'success');
+    // 1. Garante que o ID da foto seja salvo como a resposta para a pergunta
+    if (currentPhotoInputId) {
+        APP_STATE.respostasFormulario[currentPhotoInputId] = id;
+        // 2. Atualiza o display do ID no formulário (onde estava o N/A)
+        const displayElement = document.getElementById(`display_${currentPhotoInputId}`);
+        if(displayElement) displayElement.textContent = id;
+    } else {
+        console.warn('currentPhotoInputId está vazio. ID salvo no DB, mas não no formulário.');
+    }
+    
+    // 3. Atualiza o preview e o ID na modal da câmera (Confirmação)
+    document.getElementById('last-photo-id').textContent = id;
+    document.getElementById('photo-info').classList.remove('hidden');
+    document.getElementById('last-photo-preview').src = base64String;
+    
+    showNotification (`📸 Foto capturada e salva com sucesso (ID: ${id})!`, 'success');
 }).catch(e => {
-    console.error(e);
-    showNotification ('Erro ao salvar foto: '+(e.message), 'error');
+    console.error(e);
+    showNotification ('🚨 Erro ao salvar foto: '+(e.message), 'error');
 });
 
 canvasEl.classList.remove('hidden'); videoEl.classList.add('hidden');
 setTimeout(()=>{ videoEl.classList.remove('hidden');
 canvasEl.classList.add('hidden'); },500);
+
 }
+
 function closeModalAndStopCamera(){
 document.getElementById('camera-modal').classList.add('hidden');
 if(stream) { stream.getTracks().forEach(t=>t.stop()); stream=null; }
@@ -530,12 +547,68 @@ localStorage.setItem('respostasFormulario',
 JSON.stringify(APP_STATE.respostasFormulario)); showNotification('Relatório salvo com sucesso no LocalDB!','success');
 }catch(e){ showNotification('Erro ao salvar o relatório no LocalDB.','error'); } finally{ hideSpinner(); }
 });
-document.getElementById('baixar_excel').addEventListener('click',
-downloadCSV);
+document.getElementById('baixar_relatorio_csv').addEventListener('click',
+downloadReportCSV); // Listener atualizado para o CSV
+document.getElementById('baixar_fotos_jpeg').addEventListener('click',
+downloadAllPhotos); // Novo listener para as fotos
 }
-function downloadCSV(){
+function getAllPhotosFromDB() {
+    return new Promise((resolve, reject) => {
+        if (!db) return reject(new Error('IndexedDB não disponível'));
+        const tx = db.transaction([STORE_PHOTOS], 'readonly');
+        const store = tx.objectStore(STORE_PHOTOS);
+        // Pede todos os objetos (fotos) salvos
+        const request = store.getAll();
+
+        request.onsuccess = (e) => {
+            resolve(e.target.result);
+        };
+        request.onerror = (e) => {
+            reject(e.target.error);
+        };
+    });
+}
+
+function downloadPhoto(id, base64String) {
+    // base64String é uma Data URL (e.g., "data:image/jpeg;base64,...")
+    const link = document.createElement('a');
+    link.href = base64String;
+    // O nome do arquivo usa o ID da foto para fácil associação com o relatório CSV
+    link.download = `FOTO_ID_${id}_${new Date().toISOString().slice(0, 10)}.jpeg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+async function downloadAllPhotos() {
+    showSpinner();
+    try {
+        const photos = await getAllPhotosFromDB();
+        if (photos.length === 0) {
+            showNotification('Nenhuma foto encontrada no LocalDB para download.', 'error');
+            return;
+        }
+
+        // Itera e baixa cada foto individualmente
+        for (let i = 0; i < photos.length; i++) {
+            // Adiciona um pequeno delay para evitar que o navegador bloqueie todos os downloads
+            await new Promise(resolve => setTimeout(resolve, 50 * (i>0 ? 1 : 0)));
+            downloadPhoto(photos[i].id, photos[i].data);
+        }
+
+        showNotification(`✅ ${photos.length} fotos salvas com sucesso! Verifique sua pasta de Downloads.`, 'success');
+
+    } catch (e) {
+        console.error(e);
+        showNotification('Erro ao baixar as fotos: ' + e.message, 'error');
+    } finally {
+        hideSpinner();
+    }
+}
+// Renomeamos downloadCSV para downloadReportCSV e atualizamos o ID no download
+function downloadReportCSV(){
 // Adiciona o BOM para corrigir a codificação UTF-8 no Excel (Correção #1)
-const BOM = '\ufeff'; 
+const BOM = '\ufeff'; 
 const headers =
 ["Secao","Pergunta","Resposta","Avaliador","Local","Data_Exportacao"];
 const reportRows = ROTEIRO_JSON.map(p=>{ const inputId = `pergunta_${p.id}`; const resposta = APP_STATE.respostasFormulario[inputId] || '';
@@ -548,12 +621,12 @@ const finalContent = BOM + csvContent; // Adiciona o BOM no início
 const blob = new Blob([finalContent], { type: 'text/csv;charset=utf-8;' });
 const url = URL.createObjectURL(blob);
 const link = document.createElement('a'); link.setAttribute('href',
-url); 
+url); 
 
-// Mantemos a extensão .csv, pois é o formato de fato, mas com a correção de codificação
-const filename = `relatorio_${APP_STATE.local.replace(/\s/g,'_')}_${new Date().toISOString().slice(0,10)}.csv`; 
+// Mantemos a extensão .csv
+const filename = `relatorio_dados_${APP_STATE.local.replace(/\s/g,'_')}_${new Date().toISOString().slice(0,10)}.csv`; 
 
-link.setAttribute('download', filename); 
+link.setAttribute('download', filename); 
 document.body.appendChild(link); link.click();
 document.body.removeChild(link); showNotification('Arquivo CSV gerado com sucesso!','success');
 }
