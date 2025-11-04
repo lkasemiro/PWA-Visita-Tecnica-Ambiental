@@ -261,7 +261,7 @@ req.onerror = (e)=>{ showNotification ('Erro ao salvar: '+
 });
 }
 function loadInitialAnswers(){
-APP_STATE.avaliador = localStorage.getItem('avaliador') || 'João Silva';
+APP_STATE.avaliador = localStorage.getItem('avaliador') || 'Nome do Avaliador';
 APP_STATE.local = localStorage.getItem('local') || 'Local da Visita';
 document.getElementById('avaliador').value = APP_STATE.avaliador;
 document.getElementById('local').value = APP_STATE.local;
