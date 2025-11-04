@@ -61,7 +61,7 @@ body { background-color: #f8f9fa; margin:0; padding:0; font-family:Inter,system-
 
         <div class="mb-6">
           <label class="block text-gray-700 font-medium mb-1">2. Local da Visita:</label>
-          <input type="text" id="local" placeholder="Digite o local da visita" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400" />
+         <select id="local" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400"></select>
         </div>
 
         <button id="salvar_inicio" class="btn bg-blue-600 hover:bg-blue-700 text-white w-full py-2 shadow-md">Salvar e Continuar</button>
@@ -116,6 +116,20 @@ let mapa = null;
 let stream = null; // Para controlar o acesso à câmera
 let currentPhotoInputId = null; // ID da pergunta que está requisitando a foto
 let photoCounter = 1; // CRÍTICO: Contador para gerar o ID da próxima foto. Inicializado em initIndexedDB
+  const LOCAIS_VISITA = [
+    "Selecionar Local...",
+    "Rio D'Ouro",
+    "São Pedro",
+    "Barrelão",
+    "Serra Velha",
+    "Brava",
+    "Macuco",
+    "Columi",
+    "Boa Esperança",
+    "Mantiquira", 
+    "Xerém",
+    "Outro Local (Especifique)"
+];
 const APP_STATE = {
     avaliador: '',
     local: '',
@@ -282,7 +296,7 @@ const ROTEIRO_JSON = [
 {"id":10,"secao":"Geral","pergunta":"Evidência fotográfica:","tipoinput":"file","opcao":"","condicao":"Sim","pai":"9"},
 {"id":11,"secao":"Geral","pergunta":"Há utilização de equipamentos que consumam combustíveis fósseis?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
 {"id":12,"secao":"Geral","pergunta":"Cite os  equipamentos:","tipoinput":"textarea","opcao":"","condicao":"Sim","pai":"11"},
-{"id":13,"secao":"Energia","pergunta":"Qual a principal fonte de energia elétrica da unidade?","tipoinput":"checkboxGroup","opcao":"Elétrica concessionária;Fotovoltaica (solar)","condicao":"","pai":""},
+{"id":13,"secao":"Energia","pergunta":"Qual a principal fonte de energia elétrica da unidade?","tipoinput":"checkboxGroup","opcao":"Elétrica concessionária;Fotovoltaica (solar)" "Gerador a combustível fóssil", "Geração hidráulica","condicao":"","pai":""},
 {"id":14,"secao":"Geradores","pergunta":"Há geradores na unidade?","tipoinput":"radio","opcao":"Sim;Não","condicao":"","pai":""},
 {"id":15,"secao":"Geradores","pergunta":"Para que são utilizados os geradores?","tipoinput":"textarea","opcao":"","condicao":"Sim","pai":"14"},
 {"id":16,"secao":"Geradores","pergunta":"Qual o combustível é utilizado?","tipoinput":"checkboxGroup","opcao":"Gasolina;Diesel;Etanol","condicao":"Sim","pai":"14"},
@@ -310,7 +324,7 @@ const ROTEIRO_JSON = [
 {"id":38,"secao":"Resíduos Sólidos","pergunta":"Como é feito o descarte dos resíduos perigosos?","tipoinput":"textarea","opcao":"","condicao":"","pai":""},
 {"id":39,"secao":"Resíduos Sólidos","pergunta":"É possível identificar resíduos dispostos inadequadamente pelo terreno da unidade?","tipoinput":"checkboxGroup","opcao":"Entulhos e res. de obras; Sucatas/ bens inservíveis; Lixo comum; Outros;Não","condicao":"","pai":""},
 {"id":40,"secao":"Resíduos Sólidos","pergunta":"Caso outros, quais?","tipoinput":"textarea","opcao":"","condicao":"","pai":""},
-{"id":41,"secao":"Resíduos Sólidos","pergunta":"Registro fotográfico ","tipoinput":"file","opcao":"","condicao":"","pai":""}
+{"id":41,"secao":"Resíduos Sólidos","pergunta":"Registro fotográfico ","tipoinput":"file","opcao":"","condicao":"","pai":""},  {
 ];
 //
 // ===========================================
@@ -775,3 +789,4 @@ if('serviceWorker' in navigator){
 </script>
 </body>
 </html>
+
