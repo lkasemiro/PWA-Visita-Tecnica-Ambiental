@@ -3,12 +3,17 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
 <title>Formulário Técnico CEDAE (Offline)</title>
 <meta name="theme-color" content="#0C3C78">
 <link rel="manifest" href="manifest.json">
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <style>
+  input::placeholder {
+  color: #9ca3af; /* cinza claro */
+  opacity: 1;
+}
 body { background-color: #f8f9fa; margin:0; padding:0; font-family:
 Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
 Arial; }
@@ -72,16 +77,23 @@ Formulário</button>
 font-bold text-center mt-2 mb-4 text-gray-700">Formulário
 de Visita Técnica</h4>
 <div class="mb-4">
-<label for="avaliador" class="block text-gray-700 font-medium
-mb-1">1. Nome do Avaliador: </label>
-<input type="text" id="avaliador" class="w-full p-2 border
-border-gray-300 rounded-lg" value="Maria Aparecida">
+  <label for="avaliador" class="block text-gray-700 font-medium mb-1">1. Nome do Avaliador: </label>
+  <input
+    type="text"
+    id="avaliador"
+    placeholder="Digite o nome do avaliador"
+    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400"
+  />
 </div>
+
 <div class="mb-6">
-<label for="local" class="block text-gray-700 font-medium mb-1">2.
-Local da Visita: </label>
-<input type="text" id="local" class="w-full p-2 border border-
-gray-300 rounded-lg" value="Tinguá">
+  <label for="local" class="block text-gray-700 font-medium mb-1">2. Local da Visita: </label>
+  <input
+    type="text"
+    id="local"
+    placeholder="Digite o local da visita"
+    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400"
+  />
 </div>
 <button id="salvar_inicio"
 class="btn bg-blue-600 hover:bg-blue-700 text-white w-full py-2 shadow-md">Salvar
@@ -116,25 +128,46 @@ rounded-lg"></select>
 py-12">Selecione uma seção acima para começar a responder.</div>
 </div>
 <div class="text-center my-8 space-y-4">
-<button id="salvar_respostas" class="btn bg-green-600 hover:bg-
-green-700 text-white py-3 px-8 shadow-lg w-full max-w-sm">Salvar Respostas no
-LocalDB</button>
-<p id="local-db-status" class="text-sm text-gray-500">Último
-salvamento: N/A</p>
-<button id="salvar_respostas" class="btn bg-green-600 hover:bg-
-green-700 text-white py-3 px-8 shadow-lg w-full max-w-sm">Salvar Respostas no
-LocalDB</button>
-<p id="local-db-status" class="text-sm text-gray-500">Último
-salvamento: N/A</p>
+<button id="salvar_respostas" class="btn bg-green-600 hover:bg-green-700 text-white py-3 px-8 shadow-lg w-full max-w-sm">
+  Salvar Respostas no LocalDB
+</button>
+<p id="local-db-status" class="text-sm text-gray-500">Último salvamento: N/A</p>
 <button id="baixar_relatorio_csv" class="btn bg-blue-600 hover:bg-blue-700
 text-white py-3 px-8 shadow-lg w-full max-w-sm mt-4">Baixar Relatório de Dados (CSV)</button>
 <button id="baixar_fotos_jpeg" class="btn bg-red-600 hover:bg-red-700
 text-white py-3 px-8 shadow-lg w-full max-w-sm mt-4">Baixar Todas as Fotos (JPEG)</button>
+<button id="btn-recomecar" class="btn bg-gray-500 hover:bg-gray-600 text-white py-3 px-8 shadow-lg w-full max-w-sm mt-4">
+  🔄 Recomeçar
+</button>
+
 </div>
 </div>
 </div>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
+  // Função para recomeçar o formulário
+document.getElementById('btn-recomecar').addEventListener('click', () => {
+  // Limpa os campos
+  document.getElementById('avaliador').value = '';
+  document.getElementById('local').value = '';
+
+  // Retorna à página inicial
+  document.getElementById('pagina_inicial').classList.remove('hidden');
+  document.getElementById('pagina_formulario').classList.add('hidden');
+
+  // Limpa o conteúdo do formulário (opcional)
+  document.getElementById('conteudo_secao').innerHTML = `
+    <div class="section-card bg-gray-100 text-gray-500 text-center py-12">
+      Selecione uma seção acima para começar a responder.
+    </div>
+  `;
+
+  // Mostra o mapa novamente (caso precise reativar)
+  if (window.mapa) {
+    setTimeout(() => { window.mapa.invalidateSize(); }, 200);
+  }
+});
+
 //
 // ROTEIRO (JSON corrigido)
 const ROTEIRO_JSON = [
@@ -229,30 +262,42 @@ resolve(parseInt(cur.value.id)||0); else resolve(0); };
 req.onerror = ()=> resolve(0);
 });
 }
-function savePhoto (base64String) {
-return new Promise((resolve, reject)=>{
-    if(!db) { 
-        // 🚨 VERIFICAÇÃO CRÍTICA
-        showNotification('Erro interno: Banco de dados local não inicializado.', 'error');
-        return reject(new Error('IndexedDB indisponível'));
-    }
-    const photoId = String(photoCounter).padStart(3,'0');
-    const tx = db.transaction([STORE_PHOTOS], 'readwrite');
-    const store = tx.objectStore (STORE_PHOTOS);
-    
-    // 🚨 ADICIONE: TRATAMENTO DE ERRO DE TRANSAÇÃO (Captura falhas de memória/espaço)
-    tx.onerror = (e) => {
-        showNotification('Falha na transação do DB: ' + (e.target.error.message || 'Erro desconhecido.'), 'error');
-        reject(e.target.error);
-    };
+async function savePhoto(base64String) {
+  // 🔹 Garante que o IndexedDB foi inicializado
+  if (!db) {
+    console.warn('Banco não inicializado, tentando abrir novamente...');
+    await initIndexedDB();
+  }
 
-    // O campo 'data' agora armazena a string Base64 em vez do Blob
-    const data = { id: photoId, data: base64String, timestamp: new Date().toISOString()};
-    const req = store.add(data);
-    req.onsuccess = ()=>{ photoCounter++; document.getElementById('last-photo-id').textContent = photoId; resolve (photoId); };
-    req.onerror = (e)=>{ showNotification ('Erro ao salvar foto: '+ (e.target?.error?.message||e.message), 'error'); reject(e); };
-});
+  return new Promise((resolve, reject) => {
+    if (!db) {
+      showNotification('IndexedDB ainda indisponível.', 'error');
+      return reject(new Error('IndexedDB indisponível'));
+    }
+
+    try {
+      const transaction = db.transaction(['photos'], 'readwrite');
+      const store = transaction.objectStore('photos');
+      const request = store.add({ image: base64String, timestamp: Date.now() });
+
+      request.onsuccess = () => {
+        console.log("📸 Foto salva com sucesso no IndexedDB");
+        resolve();
+      };
+
+      request.onerror = (event) => {
+        console.error("❌ Erro ao salvar foto:", event.target.error);
+        showNotification("Erro ao salvar foto localmente.", "error");
+        reject(event.target.error);
+      };
+    } catch (error) {
+      console.error("❌ Falha inesperada ao salvar foto:", error);
+      showNotification("Erro interno ao salvar imagem.", "error");
+      reject(error);
+    }
+  });
 }
+
 function saveAllAnswersToDB(){
 return new Promise((resolve, reject)=>{
 if(!db) return reject(new Error('IndexedDB não disponível'));
@@ -277,45 +322,88 @@ document.getElementById('local').value = APP_STATE.local;
 const saved = localStorage.getItem('respostasFormulario');
 if(saved) APP_STATE.respostasFormulario = JSON.parse(saved);
 }
-// Camera functions
-async function startCamera(){
-const videoEl =
-document.getElementById('video');
-const placeholder =
-document.getElementById('camera-placeholder');
-const btnText = document.getElementById('camera-btn-text');
-const captureBtn = document.getElementById('capture-photo');
-if(stream) { stream.getTracks().forEach(t=>t.stop()); stream=null;
-videoEl.classList.add('hidden'); placeholder.classList.remove('hidden');
-btnText.textContent='Iniciar Câmera'; captureBtn.disabled=true; return; }
-try{
-stream = await navigator.mediaDevices.getUserMedia({ video: {
-facingMode: { ideal: 'environment' } }, audio: false });
-}catch(err) {
-try{ stream = await navigator.mediaDevices.getUserMedia({ video:true,
-audio: false }); }catch(err2){ showNotification ('Não foi possível acessar a câmera: '+(err2.message||err.message)+'. SOLUÇÃO: Use HTTPS! (Ex: Netlify/Github Pages)', 'error');
-placeholder.textContent='Acesso à câmera negado ou indisponível. Necessita de HTTPS.'; return; }
+// 🌿 Função para ligar/desligar a câmera
+async function startCamera() {
+  const videoEl = document.getElementById('video');
+  const placeholder = document.getElementById('camera-placeholder');
+  const btnText = document.getElementById('camera-btn-text');
+  const captureBtn = document.getElementById('capture-photo');
+
+  // 🔹 Se já está ligada, desliga e libera recursos
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+    videoEl.classList.add('hidden');
+    placeholder.classList.remove('hidden');
+    btnText.textContent = 'Iniciar Câmera';
+    captureBtn.disabled = true;
+    return;
+  }
+
+  try {
+    // 🔹 Prioriza câmera traseira e não usa áudio
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } },
+      audio: false
+    });
+  } catch (err) {
+    // 🔹 Se falhar, tenta qualquer câmera
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    } catch (err2) {
+      showNotification(
+        'Não foi possível acessar a câmera: ' + (err2.message || err.message) +
+        '. SOLUÇÃO: Use HTTPS! (Ex: Netlify/Github Pages)',
+        'error'
+      );
+      placeholder.textContent = 'Acesso à câmera negado ou indisponível. Necessita de HTTPS.';
+      return;
+    }
+  }
+
+  // 🔹 Mostra o vídeo
+  videoEl.srcObject = stream;
+  await videoEl.play();
+  videoEl.classList.remove('hidden');
+  placeholder.classList.add('hidden');
+  btnText.textContent = 'Desligar Câmera';
+  captureBtn.disabled = false;
+
+  // 🔹 Ajusta o canvas ao tamanho real da câmera
+  videoEl.onloadedmetadata = () => {
+    const canvasEl = document.getElementById('canvas');
+    canvasEl.width = videoEl.videoWidth;
+    canvasEl.height = videoEl.videoHeight;
+  };
 }
-videoEl.srcObject = stream; await videoEl.play();
-videoEl.classList.remove('hidden'); placeholder.classList.add('hidden');
-btnText.textContent='Desligar Câmera'; captureBtn.disabled=false;
-videoEl.onloadedmetadata = ()=>{ const canvasEl =
-document.getElementById('canvas'); canvasEl.width = videoEl.videoWidth;
-canvasEl.height = videoEl.videoHeight; };
-}
+
+// 🌿 Captura foto da câmera e salva no IndexedDB
 function capturePhoto() {
-const videoEl =
-document.getElementById('video');
-const canvasEl =
-document.getElementById('canvas');
-const ctx = canvasEl.getContext('2d');
-if(!stream || videoEl.paused || videoEl.ended) { showNotification('A câmera não está ativa.', 'error'); return; }
+  const videoEl = document.getElementById('video');
+  const canvasEl = document.getElementById('canvas');
+  const ctx = canvasEl.getContext('2d');
 
-ctx.drawImage(videoEl,0,0,canvasEl.width, canvasEl.height);
+  if (!stream || videoEl.paused || videoEl.ended) {
+    showNotification('A câmera não está ativa.', 'error');
+    return;
+  }
 
-// 🚨 CORREÇÃO DE MEMÓRIA: Reduz a qualidade da imagem para 0.7 (70%)
-// Isso diminui o tamanho da string Base64, evitando falhas de memória no celular.
-const base64String = canvasEl.toDataURL('image/jpeg', 0.7); 
+  // 🔹 Desenha frame atual no canvas
+  ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+
+  // 🔹 Reduz qualidade para celular (0.5 = 50%)
+  const base64String = canvasEl.toDataURL('image/jpeg', window.innerWidth < 800 ? 0.5 : 0.7);
+
+  // 🔹 Salva no banco local
+  savePhoto(base64String)
+    .then(() => showNotification('📸 Foto salva com sucesso!', 'success'))
+    .catch(err => showNotification('Erro ao salvar foto: ' + err.message, 'error'));
+
+  // 🔹 Limpa canvas da memória após salvar (melhor desempenho)
+  canvasEl.width = 0;
+  canvasEl.height = 0;
+}
+
 
 // Chama a função de salvar com a string Base64
 savePhoto(base64String).then(id => {
@@ -343,7 +431,7 @@ savePhoto(base64String).then(id => {
 canvasEl.classList.remove('hidden'); videoEl.classList.add('hidden');
 setTimeout(()=>{ videoEl.classList.remove('hidden');
 canvasEl.classList.add('hidden'); },500);
-}
+
 
 function closeModalAndStopCamera(){
 document.getElementById('camera-modal').classList.add('hidden');
@@ -678,6 +766,15 @@ if('serviceWorker' in navigator){
     .then(() => console.log('SW registrado'))
     .catch(err => console.warn('Falha SW', err));
 }
+window.addEventListener('load', async () => {
+  try {
+    await initIndexedDB();
+    console.log("IndexedDB inicializado com sucesso!");
+  } catch (e) {
+    showNotification("Erro ao inicializar banco local. Recarregue a página.", "error");
+  }
+});
+
 </script>
 </body>
 </html>
