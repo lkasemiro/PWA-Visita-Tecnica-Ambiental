@@ -238,17 +238,27 @@ loadInitialAnswers(); resolve(); });
 request.onerror = (e)=>{ showNotification ('Erro IndexedDB:'+e.target.error.message, 'error'); reject(e); };
 });
 }
+// [Source: 229] Corrigido: Função para obter o último ID de foto salvo
 function getLastPhotoId() {
-return new Promise((resolve)=>{
-if(!db) return resolve(0);
-const tx = db.transaction([STORE_PHOTOS], 'readonly');
-const store =
-tx.objectStore (STORE_PHOTOS);
-const req = store.openCursor (null, 'prev');
-req.onsuccess = (e)=>{ const cur = e.target.result; if(cur)
-resolve(parseInt(cur.value.id)||0); else resolve(0); };
-req.onerror = ()=> resolve(0);
-});
+  return new Promise((resolve) => {
+    if (!db) return resolve(0);
+    const tx = db.transaction([STORE_PHOTOS], 'readonly');
+    const store =
+      tx.objectStore(STORE_PHOTOS);
+    const req = store.openCursor(null, 'prev');
+    req.onsuccess = (e) => {
+      const cur = e.target.result;
+      if (cur) {
+        // CORREÇÃO: Pega o ID (que é uma string como '001'), converte para inteiro e retorna.
+        // O parseInt ignora zeros à esquerda ('001' -> 1).
+        const lastId = parseInt(cur.value.id) || 0; 
+        resolve(lastId); 
+      } else {
+        resolve(0);
+      }
+    };
+    req.onerror = () => resolve(0);
+  });
 }
 async function savePhoto(base64String) {
   // 🔹 Garante que o IndexedDB foi inicializado
@@ -748,3 +758,4 @@ if('serviceWorker' in navigator){
 </script>
 </body>
 </html>
+
