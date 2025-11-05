@@ -54,25 +54,27 @@ body { background-color: #f8f9fa; margin:0; padding:0; font-family:Inter,system-
         <img src="icon.png" alt="Logo CEDAE" class="logo">
         <h4 class="text-xl font-bold text-center mt-2 mb-4 text-gray-700">Formulário de Visita Técnica de Supervisão Ambiental</h4>
 
-        <div class="mb-4">
-          <label class="block text-gray-700 font-medium mb-1">1. Nome do Avaliador:</label>
-          <input type="text" id="avaliador" placeholder="Digite o nome do avaliador" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400" />
-        </div>
+         <!-- trechos principais corrigidos -->
+<div class="mb-4">
+  <label class="block text-gray-700 font-medium mb-1">1. Nome do Avaliador:</label>
+  <input type="text" id="avaliador" placeholder="Digite o nome do avaliador" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400" />
+</div>
 
-        <div class="mb-">
-          <label class="block text-gray-700 font-medium mb-1">2. Local da Visita:</label>
-          <select id="local" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400"></select>
-        </div>
+<div class="mb-4">
+  <label class="block text-gray-700 font-medium mb-1">2. Local da Visita:</label>
+  <select id="local" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400"></select>
+</div>
 
-        <div class="mb-2">
-          <label class="block text-gray-700 font-medium mb-1">3. Data da visita:</label>
-          <input type="text" id="Data" placeholder="Digite a data" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400" />
-        </div>
+<div class="mb-4">
+  <label class="block text-gray-700 font-medium mb-1">3. Data da visita:</label>
+  <input type="date" id="data_visita" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400" />
+</div>
 
-        <div class="mb-2">
-          <label class="block text-gray-700 font-medium mb-1">4. Colaborador da GLA :</label>
-          <input type="text" id="Nome do colaborador" placeholder="Nome do colaborador" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400" />
-        </div>
+<div class="mb-4">
+  <label class="block text-gray-700 font-medium mb-1">4. Colaborador da GLA:</label>
+  <input type="text" id="colaborador" placeholder="Digite o nome do colaborador" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400" />
+</div>
+
 
         <button id="salvar_inicio" class="btn bg-blue-600 hover:bg-blue-700 text-white w-full py-2 shadow-md">Salvar e Continuar</button>
         <p class="text-xs text-gray-500 mt-4 text-center">App PWA com IndexedDB para uso offline.</p>
@@ -286,19 +288,50 @@ req.onerror = (e)=>{ showNotification ('Erro ao salvar: '+
 });
 }
 
-function loadInitialAnswers(){
-APP_STATE.avaliador = localStorage.getItem('avaliador') || '';
-APP_STATE.local = localStorage.getItem('local') || '';
-APP_STATE.colaborador = localStorage.getItem('colaborador') || '';
-APP_STATE.data = localStorage.getItem('data') || '';  
-document.getElementById('avaliador').value = APP_STATE.avaliador;
-document.getElementById('local').value = APP_STATE.local;  
-document.getElementById('colaborador').value = APP_STATE.colaborador;
-document.getElementById('data').value = APP_STATE.data;
-const saved = localStorage.getItem('respostasFormulario');
-if(saved) APP_STATE.respostasFormulario = JSON.parse(saved);
-}
+function loadInitialAnswers() {
+  APP_STATE.avaliador = localStorage.getItem('avaliador') || '';
+  APP_STATE.local = localStorage.getItem('local') || '';
+  APP_STATE.colaborador = localStorage.getItem('colaborador') || '';
+  APP_STATE.data = localStorage.getItem('data') || '';  
 
+  document.getElementById('avaliador').value = APP_STATE.avaliador;
+  document.getElementById('local').value = APP_STATE.local;
+  document.getElementById('colaborador').value = APP_STATE.colaborador;
+  document.getElementById('data_visita').value = APP_STATE.data;
+
+  const saved = localStorage.getItem('respostasFormulario');
+  if(saved) APP_STATE.respostasFormulario = JSON.parse(saved);
+}
+document.getElementById('salvar_inicio').addEventListener('click', () => {
+  const avaliador = document.getElementById('avaliador').value;
+  const local = document.getElementById('local').value;
+  const colaborador = document.getElementById('colaborador').value;
+  const dataVisita = document.getElementById('data_visita').value;
+
+  if (!avaliador || !local || !colaborador || !dataVisita) {
+    showNotification('Preencha todos os campos antes de continuar.', 'error');
+    return;
+  }
+
+  APP_STATE.avaliador = avaliador;
+  APP_STATE.local = local;
+  APP_STATE.colaborador = colaborador;
+  APP_STATE.data = dataVisita;
+
+  localStorage.setItem('avaliador', avaliador);
+  localStorage.setItem('local', local);
+  localStorage.setItem('colaborador', colaborador);
+  localStorage.setItem('data', dataVisita);
+
+  showNotification('Informações salvas com sucesso!', 'success');
+  document.getElementById('pagina_inicial').classList.add('hidden');
+  document.getElementById('pagina_formulario').classList.remove('hidden');
+
+  const secoes = [...new Set(ROTEIRO_JSON.map(p => p.secao))];
+  document.getElementById('secao_select').innerHTML =
+    secoes.map(sec => `<option value="${sec}">${sec}</option>`).join('');
+  renderFormSection(secoes[0]);
+});
 // ===========================================
 // ROTEIRO JSON
 // ===========================================
@@ -818,6 +851,7 @@ if('serviceWorker' in navigator){
 </script>
 </body>
 </html>
+
 
 
 
