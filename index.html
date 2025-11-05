@@ -657,31 +657,39 @@ document.getElementById('secao_select').value = secoes[0];
 renderFormSection(secoes[0]);
 });
 
-document.getElementById('btn-recomecar').addEventListener('click',()=>{
-    document.getElementById('avaliador').value='';
-    document.getElementById('local').value='';
-    APP_STATE.avaliador = '';
-    APP_STATE.local = '';
-    document.getElementById('colaborador').value='';
-    document.getElementById('data').value='';
-    APP_STATE.colaborador = '';
-    APP_STATE.data = '';
-    APP_STATE.respostasFormulario = {};
-    localStorage.removeItem('avaliador');
-    localStorage.removeItem('local');
-    localStorage.removeItem('colaborador');
-    localStorage.removeItem('data');
-    localStorage.removeItem('respostasFormulario');
+document.getElementById('btn-recomecar').addEventListener('click', () => {
+  // Limpa todos os campos de identificação
+  document.getElementById('avaliador').value = '';
+  document.getElementById('local').value = '';
+  document.getElementById('colaborador').value = '';
+  document.getElementById('data_visita').value = '';
 
-    document.getElementById('pagina_inicial').classList.remove('hidden');
-    document.getElementById('pagina_formulario').classList.add('hidden');
-    
-    // Invalida o mapa
-    if (mapa) {
-        setTimeout(() => mapa.invalidateSize(), 300);
-    }
-    showNotification('Formulário e dados locais limpos. Recomece o relatório.', 'success');
-  });
+  // Limpa variáveis do estado
+  APP_STATE.avaliador = '';
+  APP_STATE.local = '';
+  APP_STATE.colaborador = '';
+  APP_STATE.data = '';
+  APP_STATE.respostasFormulario = {};
+
+  // Limpa o armazenamento local
+  localStorage.removeItem('avaliador');
+  localStorage.removeItem('local');
+  localStorage.removeItem('colaborador');
+  localStorage.removeItem('data');
+  localStorage.removeItem('respostasFormulario');
+
+  // Volta para a página inicial
+  document.getElementById('pagina_inicial').classList.remove('hidden');
+  document.getElementById('pagina_formulario').classList.add('hidden');
+
+  // Reajusta o mapa
+  if (mapa) {
+    setTimeout(() => mapa.invalidateSize(), 300);
+  }
+
+  showNotification('Formulário e dados locais limpos. Recomece o relatório.', 'success');
+});
+
 
 document.getElementById('secao_select').addEventListener('change',(e)=>{
 if(e.target.value) renderFormSection(e.target.value); });
@@ -851,6 +859,7 @@ if('serviceWorker' in navigator){
 </script>
 </body>
 </html>
+
 
 
 
