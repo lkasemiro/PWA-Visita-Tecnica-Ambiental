@@ -750,10 +750,10 @@ function downloadReportCSV(){
 // Adiciona o BOM para corrigir a codificação UTF-8 no Excel (Correção #1)
 const BOM = '\ufeff';
 const headers =
-["Secao","Pergunta","Resposta","Avaliador","Local","Data_Exportacao"];
+["Secao","Pergunta","Resposta","Avaliador","Local","Data_Exportacao", "colaborador"];
 const reportRows = ROTEIRO_JSON.map(p=>{ const inputId = `pergunta_${p.id}`; const resposta = APP_STATE.respostasFormulario[inputId] || '';
 // A resposta é um texto simples, mas garantimos que aspas duplas sejam escapadas
-return [`"${p.secao}"`, `"${p.pergunta.replace(/"/g,'""')}"`, `"${String(resposta).replace(/"/g,'""')}"`, `"${APP_STATE.avaliador}"`, `"${APP_STATE.local}"`, `"${new Date().toLocaleString('pt-BR')}"`].join(','); });
+return [`"${p.secao}"`, `"${p.pergunta.replace(/"/g,'""')}"`, `"${String(resposta).replace(/"/g,'""')}"`, `"${APP_STATE.avaliador}"`,`"${APP_STATE.colaborador}"`, `"${APP_STATE.local}"`, `"${new Date().toLocaleString('pt-BR')}"`].join(','); });
 const csvContent = headers.join(',') + '\n' + reportRows.join('\n');
 const finalContent = BOM + csvContent;
 // Adiciona o BOM no início
@@ -818,6 +818,8 @@ if('serviceWorker' in navigator){
 </script>
 </body>
 </html>
+
+
 
 
 
